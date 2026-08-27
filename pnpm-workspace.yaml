@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+  - apps/*
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@noble/hashes@2.4.0'

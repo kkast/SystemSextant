@@ -1,0 +1,43 @@
+{
+  "name": "systemsextant",
+  "version": "0.1.0",
+  "description": "Navigate decisions into an agent-ready architecture.",
+  "type": "module",
+  "bin": {
+    "systemsextant": "./dist/bin/systemsextant.js"
+  },
+  "files": [
+    "dist/bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "clipboardy": "5.3.2",
+    "commander": "15.0.0",
+    "env-paths": "4.0.0",
+    "ink": "7.1.1",
+    "react": "19.2.8",
+    "strip-ansi": "7.2.0",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@systemsextant/core": "workspace:*",
+    "@types/react": "19.2.18",
+    "esbuild": "0.28.2",
+    "ink-testing-library": "4.0.0"
+  }
+}
