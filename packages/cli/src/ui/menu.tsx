@@ -5,6 +5,8 @@ export interface MenuOption<T extends string> {
   readonly value: T;
   readonly label: string;
   readonly description?: string | undefined;
+  /** Single-key action, shown beside the item and available without moving selection. */
+  readonly shortcut?: string | undefined;
 }
 
 interface MenuProps<T extends string> {
@@ -41,7 +43,12 @@ export function Menu<T extends string>({
       if (key.escape) onCancel?.();
       return;
     }
-    if (key.upArrow || input === 'k') {
+    const shortcut = !key.ctrl && !key.meta && !key.shift && input.length === 1
+      ? options.find((option) => option.shortcut?.toLowerCase() === input.toLowerCase())
+      : undefined;
+    if (shortcut) {
+      onSelect(shortcut.value);
+    } else if (key.upArrow || input === 'k') {
       setSelectedIndex((current) => (current <= 0 ? options.length - 1 : current - 1));
     } else if (key.downArrow || input === 'j') {
       setSelectedIndex((current) => (current >= options.length - 1 ? 0 : current + 1));
@@ -61,7 +68,7 @@ export function Menu<T extends string>({
           <Box key={option.value} flexDirection="column">
             <Text color={selected ? 'cyan' : 'white'} bold={selected}>
               {selected ? '› ' : '  '}
-              {option.label}
+              {option.label}{option.shortcut ? <Text dimColor> [{option.shortcut.toUpperCase()}]</Text> : null}
             </Text>
             {option.description && (showDescriptions || selected) ? (
               <Text dimColor> {option.description}</Text>

@@ -2,7 +2,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { compilePrompt } from '../prompt/compile.js';
-import { parseProjectConfig, type ProjectConfigV1 } from '../schema/project-config.js';
+import { parseProjectConfig, type ProjectConfig } from '../schema/project-config.js';
 import { parseSessionMetadata, type SessionMetadataV1 } from '../schema/session.js';
 
 export interface ArtifactBundle {
@@ -17,7 +17,7 @@ export function hashText(value: string): string {
   return bytesToHex(sha256(utf8ToBytes(value)));
 }
 
-export function serializeProjectConfig(input: ProjectConfigV1): string {
+export function serializeProjectConfig(input: ProjectConfig): string {
   const config = parseProjectConfig(input);
   return stringifyYaml(config, {
     lineWidth: 0,
@@ -25,7 +25,7 @@ export function serializeProjectConfig(input: ProjectConfigV1): string {
   });
 }
 
-export function deserializeProjectConfig(value: string): ProjectConfigV1 {
+export function deserializeProjectConfig(value: string): ProjectConfig {
   return parseProjectConfig(parseYaml(value));
 }
 
@@ -41,7 +41,7 @@ export function deserializeSessionMetadata(value: string): SessionMetadataV1 {
   return parseSessionMetadata(parseYaml(value));
 }
 
-export function generateArtifacts(input: ProjectConfigV1): ArtifactBundle {
+export function generateArtifacts(input: ProjectConfig): ArtifactBundle {
   const config = parseProjectConfig(input);
   const projectYaml = serializeProjectConfig(config);
   const compiledPrompt = compilePrompt(config);

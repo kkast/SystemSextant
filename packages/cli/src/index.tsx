@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { render } from 'ink';
 import { App } from './app/app.js';
 import { FileSessionRepository } from './adapters/file-session-repository.js';
+import { FileTemplateRepository } from './adapters/file-template-repository.js';
 import { getSystemSextantDataDirectory } from './adapters/paths.js';
 import { systemClock, uuidGenerator } from './adapters/platform.js';
 
@@ -25,9 +26,11 @@ export async function run(argv: readonly string[] = process.argv): Promise<void>
 
   const dataDirectory = getSystemSextantDataDirectory(options.dataDir);
   const repository = new FileSessionRepository(dataDirectory);
+  const templateRepository = new FileTemplateRepository(dataDirectory);
   const instance = render(
     <App
       repository={repository}
+      templateRepository={templateRepository}
       clipboard={{ write: (value) => clipboard.write(value) }}
       clock={systemClock}
       ids={uuidGenerator}
@@ -41,4 +44,5 @@ export async function run(argv: readonly string[] = process.argv): Promise<void>
 export { App } from './app/app.js';
 export { exportSessionArtifacts, ExportConflictError } from './adapters/export-artifacts.js';
 export { FileSessionRepository } from './adapters/file-session-repository.js';
+export { FileTemplateRepository } from './adapters/file-template-repository.js';
 export { getSystemSextantDataDirectory } from './adapters/paths.js';

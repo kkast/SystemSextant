@@ -16,18 +16,17 @@ node packages/cli/dist/bin/systemsextant.js
 
 For convenience, use `pnpm dev` to build and launch the CLI in one command.
 
-The bare interface lets you start a new session or reopen a saved one. A new session asks about the product, frontend, backend, compatible deployment targets, data and infrastructure needs, authentication, and how the receiving coding agent should work. Before saving, you can review answers and both generated artifacts.
+The bare interface lets you start a new session, reopen a saved one, or use a template. A new session asks one question at a time about multiple named UIs and services, their descriptions, deployments, data, authentication, and infrastructure. Press `G` from review to generate both artifacts.
 
 Caching, distributed rate limiting, and reliable background delivery are separate choices. They use Upstash Redis, Ratelimit, and QStash, or Cloudflare-native alternatives when Cloudflare Workers is the selected backend.
 
-Completed sessions are stored in the operating system's application-data directory. Saved sessions can be reopened, viewed, copied, exported, or deleted.
+Generated sessions are saved automatically in the operating system's application-data directory. Saved sessions can be reopened, viewed, copied, exported, or deleted. Saving a reusable template asks for a template-specific name and rejects duplicate configurations.
 
 Choose **Supported stacks and tools** from the home screen to browse every currently selectable option and discussion-only future additions.
 
 ## Product direction
 
-- **Now:** local questionnaire, deterministic generation, and saved local sessions.
-- **Next:** save and reuse configurations as templates.
+- **Now:** multi-component questionnaire, deterministic generation, saved local sessions, and reusable templates.
 - **Later:** use the same core through a local or hosted web browser interface.
 
 See [Architecture](docs/ARCHITECTURE.md) for how the code is organized, [Features](docs/FEATURES.md) for current and potential capabilities, and [AGENTS.md](AGENTS.md) for repository working rules.

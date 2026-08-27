@@ -5,10 +5,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   normalizeProjectConfig,
   prepareCompletedSession,
+  prepareTemplate,
   type QuestionnaireAnswers,
 } from '@systemsextant/core';
 import { ExportConflictError, exportSessionArtifacts } from './export-artifacts.js';
 import { FileSessionRepository } from './file-session-repository.js';
+import { FileTemplateRepository } from './file-template-repository.js';
 import { sanitizeTerminalText } from './sanitize.js';
 
 const temporaryDirectories: string[] = [];
@@ -82,6 +84,34 @@ describe('FileSessionRepository', () => {
     );
 
     await expect(repository.get(expected.metadata.id)).rejects.toThrow(/integrity check failed/);
+  });
+});
+
+describe('FileTemplateRepository', () => {
+  it('atomically persists, verifies, and deletes a template', async () => {
+    const dataDirectory = await temporaryDirectory();
+    const repository = new FileTemplateRepository(dataDirectory);
+    const expected = prepareTemplate(normalizeProjectConfig(answers), {
+      id: 'template-1', title: 'Stored template', description: 'Reusable architecture.', now: new Date('2026-08-27T12:00:00.000Z'),
+    });
+    await repository.create(expected);
+    await expect(repository.list()).resolves.toEqual([expected.metadata]);
+    await expect(repository.get(expected.metadata.id)).resolves.toEqual(expected);
+    await repository.delete(expected.metadata.id);
+    await expect(repository.list()).resolves.toEqual([]);
+  });
+
+  it('rejects a duplicate configuration even when it has a different name and ID', async () => {
+    const dataDirectory = await temporaryDirectory();
+    const repository = new FileTemplateRepository(dataDirectory);
+    const config = normalizeProjectConfig(answers);
+    await repository.create(prepareTemplate(config, {
+      id: 'template-1', title: 'First name', description: '', now: new Date('2026-08-27T12:00:00.000Z'),
+    }));
+    await expect(repository.create(prepareTemplate(config, {
+      id: 'template-2', title: 'Second name', description: '', now: new Date('2026-08-27T12:01:00.000Z'),
+    }))).rejects.toThrow(/already saved/);
+    await expect(repository.list()).resolves.toHaveLength(1);
   });
 });
 

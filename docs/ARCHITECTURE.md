@@ -14,6 +14,7 @@ packages/
     prompt/          Stable prompt-block registry and deterministic compiler
     artifacts/       YAML serialization and artifact hashing
     sessions/        Session use cases and persistence ports
+    templates/       Reusable configuration persistence port and use cases
   cli/src/
     app/             Screen state and workflow orchestration
     screens/         Questionnaire, session, and export experiences
@@ -27,14 +28,16 @@ packages/
 ## Product flow
 
 ```text
-questionnaire answers
-  -> normalized and validated ProjectConfigV1
+architecture draft
+  -> normalized and validated ProjectConfigV2
   -> deterministic project.yaml + AGENT_PROMPT.md
   -> completed session
   -> local SessionRepository
 ```
 
-- The questionnaire uses product-language choices, explains why each option is useful, filters incompatible combinations, and asks follow-up questions only when required.
+- The questionnaire collects named UIs and services rather than a singleton frontend and backend. Every component has a default name, an optional description, a deployment fit, and a stable ID. UIs are role-labelled (admin, business client, user client, landing page, or custom); services can be independently deployed.
+- V2 records described UIs and services without requiring the user to design their connections; the receiving agent derives topology from component meaning and confirmed capabilities. It currently permits at most one database, cache, rate-limit store, queue, and object store while keeping resources as an extensible graph.
+- V1 session artifacts remain readable and hash-verified. V2 is used for new multi-component configurations and templates.
 - Frontend selection is independent from backend selection: create a vanilla TypeScript frontend with Vite, use Next.js, or choose no frontend.
 - Backend selection follows frontend selection and offers Next.js server features, Express, Cloudflare Workers, or no backend. Express and Cloudflare Workers are alternatives within this single question; Next.js server features require the Next.js frontend.
 - Real-time transports are independent selections. Express projects may use Server-Sent Events, WebSockets, both, or neither; other current backends offer Server-Sent Events or neither.
@@ -46,6 +49,7 @@ questionnaire answers
 - Normalization expands shortcuts into explicit components, resources, connections, contracts, and confirmed decisions.
 - Zod validates data at each boundary and rejects invalid graph references or duplicate stable IDs.
 - Artifact generation uses stable ordering, excludes timestamps from project artifacts, and hashes the exact stored content.
+- Generation automatically persists one session per unique project-artifact hash. Templates require their own user-provided name and use the project hash for duplicate prevention.
 - Session use cases depend on `SessionRepository`, `Clock`, and `IdGenerator` interfaces so persistence and platform behavior remain replaceable.
 - The CLI repository stages all session files before renaming them into place, then verifies hashes whenever a session is loaded.
 
@@ -57,16 +61,20 @@ The prompt contains:
 
 - a mission and the confirmed product context;
 - the explicit component, resource, connection, and contract graph;
-- general TypeScript and security requirements;
+- a mandatory security baseline before general TypeScript requirements;
+- pnpm workspace guidance for multi-component systems;
+- lightweight vanilla TypeScript or shadcn/ui plus Tailwind CSS guidance for the selected frontend;
 - guidance only for selected capabilities;
 - one of three agent workflows: plan only, plan then build, or direct build;
 - required deliverables, including a durable `SYSTEM_ARCHITECTURE.md` in the generated target project.
 
-User-provided text is escaped and placed inside a labeled data block. This is a prompt-injection boundary: product descriptions remain context and must not become instructions. Capability and workflow text is maintained as trusted compiler-owned guidance. Comments next to the compiler explain these choices because changing their order or trust role changes the generated contract.
+Every configuration value is treated as untrusted, including imported names, IDs, descriptions, decisions, and contract text. Architecture blocks serialize these values as JSON, escape container delimiters, and label them as data that must never override compiler-owned instructions. The mission establishes this prompt-injection boundary before the first data block. Capability and workflow text remains trusted compiler-owned guidance. Comments next to the compiler explain these choices because changing order, applicability, or trust role changes the generated contract.
 
 ### Prompt blocks: the LEGO rule
 
-The compiler treats prompt sections like LEGO pieces. Each block has a stable unique ID, deterministic order, applicability rule based on validated configuration, and deterministic renderer. Block families include `base.*`, `architecture.*`, `baseline.*`, `capability.*`, `tool.*`, and `agent-mode.*`.
+The compiler treats prompt sections like LEGO pieces. Each block has a stable unique ID, deterministic order, applicability rule based on validated configuration, and deterministic renderer. Block families include `base.*`, `architecture.*`, `baseline.*`, `frontend.*`, `capability.*`, `tool.*`, and `agent-mode.*`.
+
+The security baseline is universal and precedes engineering, frontend, capability, and provider guidance. Capability requirements are cumulative and provider blocks may refine but never weaken them. A multi-component graph adds `architecture.pnpm-workspace`; a Next.js UI adds `frontend.nextjs-design-system`; a vanilla Vite UI adds `frontend.vite-vanilla-lightweight`. The vanilla block intentionally rejects framework and broad design-system dependencies so that selection remains the lightweight option. The Next.js block requires shadcn/ui and Tailwind CSS as its accessible, reusable design-system foundation.
 
 Provider-independent challenge guidance and provider-specific tool guidance are separate blocks. Adding a tool should normally add a new `tool.*` block; it must not rewrite shared blocks or change prompts for configurations that do not select that tool. Edit an existing shared block only when its existing responsibility genuinely changes, such as correcting unsafe global guidance.
 

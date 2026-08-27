@@ -49,10 +49,30 @@ describe('App', () => {
     expect(lastFrame()).toContain('Cloudflare Workers');
   });
 
-  it('starts the questionnaire from the bare home screen', async () => {
+  it('starts the multi-component architecture builder from the bare home screen', async () => {
     const { stdin, lastFrame } = renderApp();
     stdin.write('\r');
     await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(lastFrame()).toContain('New session');
+    expect(lastFrame()).toContain('Question 1');
     expect(lastFrame()).toContain('Project name');
+  });
+
+  it('uses a role-based UI name and allows an empty description', async () => {
+    const { stdin, lastFrame } = renderApp();
+    const wait = () => new Promise((resolve) => setTimeout(resolve, 10));
+    stdin.write('\r'); await wait();
+    stdin.write('Example'); await wait(); stdin.write('\r'); await wait();
+    stdin.write('\r'); await wait();
+    stdin.write('\u001b[B'); await wait(); stdin.write('\r'); await wait();
+    expect(lastFrame()).toContain('UI 1: purpose');
+    expect(lastFrame()).toContain('› Admin portal');
+    stdin.write('\r'); await wait();
+    expect(lastFrame()).toContain('UI 1: name');
+    expect(lastFrame()).toContain('Admin portal');
+    stdin.write('\r'); await wait();
+    expect(lastFrame()).toContain('description (optional)');
+    stdin.write('\r'); await wait();
+    expect(lastFrame()).toContain('UI 1: technology');
   });
 });

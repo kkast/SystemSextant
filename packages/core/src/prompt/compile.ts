@@ -1,4 +1,4 @@
-import { parseProjectConfig, type ProjectConfigV1 } from '../schema/project-config.js';
+import { parseProjectConfig, type ProjectConfig } from '../schema/project-config.js';
 import { defaultPromptBlocks, type PromptBlock } from './blocks.js';
 
 export interface CompiledPrompt {
@@ -7,7 +7,7 @@ export interface CompiledPrompt {
 }
 
 export function compilePrompt(
-  input: ProjectConfigV1,
+  input: ProjectConfig,
   blocks: readonly PromptBlock[] = defaultPromptBlocks,
 ): CompiledPrompt {
   const config = parseProjectConfig(input);
@@ -30,7 +30,7 @@ export function compilePrompt(
   };
 }
 
-export function compileAgentPrompt(input: ProjectConfigV1): string {
+export function compileAgentPrompt(input: ProjectConfig): string {
   return compilePrompt(input).content;
 }
 

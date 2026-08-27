@@ -19,4 +19,14 @@ describe('Menu', () => {
     expect(lastFrame()).toContain('One');
     expect(lastFrame()).toContain('Two');
   });
+
+  it('invokes a configured quick action without moving the selection', async () => {
+    let selected: string | undefined;
+    const { stdin } = render(
+      <Menu options={[{ value: 'generate', label: 'Generate', shortcut: 'g' }]} onSelect={(value) => { selected = value; }} />,
+    );
+    stdin.write('g');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(selected).toBe('generate');
+  });
 });

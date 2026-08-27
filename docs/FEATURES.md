@@ -10,6 +10,9 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 - [x] Launch the interactive experience with bare `systemsextant`.
 - [x] Start a new session or browse saved sessions from the home screen.
+- [x] Define multiple named UIs and services with role-based default names, optional descriptions, and deployments in a linear question-by-question flow.
+- [x] Support admin, business-client, user-client, landing-page, and custom UI roles.
+- [x] Generate directly from answer review with the `G` quick action.
 - [x] Browse a concise catalog of all selectable stacks, providers, and infrastructure tools from the home screen.
 - [x] Ask deterministic product and architecture questions with conditional follow-ups.
 - [x] Replace bundled architecture starters with an independent frontend choice: vanilla TypeScript with Create Vite, Next.js, or no frontend.
@@ -24,7 +27,8 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Add Cloudflare Cache/KV, Workers Rate Limiting, and Cloudflare Queues as independent tool mappings and prompt blocks.
 - [x] Select an authentication service, then offer only its compatible login methods.
 - [x] Review and edit answers before generating artifacts.
-- [x] View generated artifacts before saving a session.
+- [x] Review generated artifacts after automatic session persistence.
+- [x] Copy the complete prompt or YAML directly from generated-artifact preview.
 - [x] Work locally without an account, model call, telemetry, or runtime network access.
 
 ## Configuration and prompting
@@ -32,7 +36,10 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Normalize answers into a versioned `ProjectConfigV1` component graph.
 - [x] Validate stable IDs, ownership, connections, and confirmed decisions with Zod.
 - [x] Generate byte-identical `project.yaml` and `AGENT_PROMPT.md` for identical input.
-- [x] Keep user product text inside an escaped prompt data boundary.
+- [x] Keep every configuration value inside escaped JSON prompt-data boundaries that cannot override compiler instructions.
+- [x] Put a mandatory security baseline and negative-path security verification ahead of engineering and capability guidance.
+- [x] Add pnpm workspace guidance only for multi-component architectures.
+- [x] Keep vanilla Vite lightweight and require shadcn/ui with Tailwind CSS only for selected Next.js frontends.
 - [x] Add guidance only for selected capabilities.
 - [x] Compile prompts from stable independently selected blocks with recorded block IDs.
 - [x] Map Upstash caching to Redis, rate limiting to Ratelimit, and background delivery to QStash in separate tool blocks.
@@ -42,6 +49,7 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 ## Local sessions and artifacts
 
+- [x] Save each unique generated configuration as a local session automatically.
 - [x] Store completed sessions in the platform application-data directory.
 - [x] Persist `session.yaml`, `project.yaml`, and `AGENT_PROMPT.md` atomically.
 - [x] Verify stored artifact hashes when loading a session.
@@ -61,8 +69,10 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 ## Next: reusable templates
 
-- [ ] Save a completed configuration as a reusable local template.
-- [ ] List, load, clone, edit, rename, export, import, and delete templates.
+- [x] Save a completed configuration as a reusable local template and reopen a V2 template as an editable architecture.
+- [x] Require a custom template name and prevent duplicate templates for the same configuration.
+- [x] List, load, and delete local templates with atomic writes and integrity verification.
+- [ ] Clone, rename, export, and import templates.
 - [ ] Detect structurally similar templates.
 - [ ] Add richer component, resource, connection, and contract editing.
 - [ ] Import an existing `project.yaml` and recover draft sessions.
