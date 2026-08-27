@@ -34,6 +34,19 @@ describe('App', () => {
     expect(lastFrame()).toContain('SystemSextant');
     expect(lastFrame()).toContain('New session');
     expect(lastFrame()).toContain('Past sessions');
+    expect(lastFrame()).toContain('Supported stacks and tools');
+  });
+
+  it('opens the supported stack catalog from the home screen', async () => {
+    const { stdin, lastFrame } = renderApp();
+    stdin.write('\u001b[B');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    stdin.write('\u001b[B');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    stdin.write('\r');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(lastFrame()).toContain('Supported stacks and tools');
+    expect(lastFrame()).toContain('Cloudflare Workers');
   });
 
   it('starts the questionnaire from the bare home screen', async () => {

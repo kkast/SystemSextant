@@ -1,12 +1,10 @@
 import { z } from 'zod';
 
-export const ArchitectureStarterSchema = z.enum([
-  'nextjs',
-  'nextjs-express',
-  'typescript-cli',
-  'custom-typescript',
-]);
-export type ArchitectureStarter = z.infer<typeof ArchitectureStarterSchema>;
+export const FrontendSchema = z.enum(['nextjs', 'vite-vanilla', 'none']);
+export type Frontend = z.infer<typeof FrontendSchema>;
+
+export const BackendSchema = z.enum(['nextjs', 'express', 'cloudflare-workers', 'none']);
+export type Backend = z.infer<typeof BackendSchema>;
 
 export const CapabilitySchema = z.enum([
   'database',
@@ -22,7 +20,14 @@ export type Capability = z.infer<typeof CapabilitySchema>;
 export const AgentModeSchema = z.enum(['plan-only', 'plan-then-build', 'direct-build']);
 export type AgentMode = z.infer<typeof AgentModeSchema>;
 
-export const ToolIdSchema = z.enum(['upstash-redis-cache', 'upstash-ratelimit', 'upstash-qstash']);
+export const ToolIdSchema = z.enum([
+  'upstash-redis-cache',
+  'upstash-ratelimit',
+  'upstash-qstash',
+  'cloudflare-cache',
+  'cloudflare-ratelimit',
+  'cloudflare-queues',
+]);
 export type ToolId = z.infer<typeof ToolIdSchema>;
 
 export const ComponentSchema = z.object({
@@ -30,9 +35,9 @@ export const ComponentSchema = z.object({
   name: z.string().min(1),
   kind: z.enum([
     'nextjs-app',
+    'vite-vanilla-app',
     'express-service',
-    'typescript-cli',
-    'custom-typescript',
+    'cloudflare-worker',
     'background-worker',
   ]),
   technology: z.string().min(1),
@@ -97,7 +102,8 @@ export const ProjectConfigV1Schema = z
       goals: z.array(z.string()),
       constraints: z.array(z.string()),
     }),
-    architectureStarter: ArchitectureStarterSchema,
+    frontend: FrontendSchema,
+    backend: BackendSchema,
     capabilities: z.array(CapabilitySchema),
     tools: z.array(ToolIdSchema).refine((items) => new Set(items).size === items.length),
     components: z.array(ComponentSchema).min(1),

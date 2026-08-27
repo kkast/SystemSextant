@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ArchitectureStarterSchema } from './project-config.js';
+import { BackendSchema, FrontendSchema } from './project-config.js';
 
 export const SessionMetadataV1Schema = z.object({
   schemaVersion: z.literal(1),
@@ -8,7 +8,8 @@ export const SessionMetadataV1Schema = z.object({
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
   generatorVersion: z.string().min(1),
-  architectureStarter: ArchitectureStarterSchema,
+  frontend: FrontendSchema,
+  backend: BackendSchema,
   projectConfigHash: z.string().regex(/^[a-f0-9]{64}$/),
   agentPromptHash: z.string().regex(/^[a-f0-9]{64}$/),
   promptBlockIds: z.array(z.string().min(1)),

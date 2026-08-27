@@ -1,4 +1,9 @@
-import { agentModeLabels, architectureLabels, capabilityLabels } from '../catalog/index.js';
+import {
+  agentModeLabels,
+  backendLabels,
+  capabilityLabels,
+  frontendLabels,
+} from '../catalog/index.js';
 import type { ProjectConfigV1 } from '../schema/project-config.js';
 
 export interface PromptBlock {
@@ -63,7 +68,8 @@ Summary: ${escapeData(config.product.summary)}
     applies: always,
     render: (config) => `## Confirmed architecture
 
-- Starter: **${architectureLabels[config.architectureStarter]}**
+- Frontend: **${frontendLabels[config.frontend]}**
+- Backend: **${backendLabels[config.backend]}**
 - Language: **TypeScript**
 - Capabilities: ${
       config.capabilities.length === 0
@@ -122,6 +128,21 @@ ${bullets(
     (contract) =>
       `**${contract.name}** (\`${contract.id}\`): ${contract.description} Participants: ${contract.participants.map((participant) => `\`${participant}\``).join(', ')}.`,
   ),
+)}`,
+  },
+  {
+    id: 'architecture.decisions',
+    order: 850,
+    applies: always,
+    render: (config) => `### Confirmed decisions
+
+${bullets(
+  config.decisions
+    .filter((decision) => decision.source === 'user' || decision.key === 'infrastructure.provider')
+    .map(
+      (decision) =>
+        `**${decision.key}**: ${Array.isArray(decision.value) ? decision.value.join(', ') || 'none' : decision.value}.`,
+    ),
 )}`,
   },
   {
@@ -267,6 +288,36 @@ ${bullets(
 - Use QStash for HTTP-based background delivery, retries, schedules, and queues; do not substitute a Redis list without a confirmed reason.
 - Verify QStash signatures before processing, make handlers idempotent, and define retry and dead-letter behavior.
 - Use FIFO queues or controlled parallelism only when the product requires ordering or concurrency limits.`,
+  },
+  {
+    id: 'tool.cloudflare.cache',
+    order: 1240,
+    applies: (config) => config.tools.includes('cloudflare-cache'),
+    render: () => `### Tool: Cloudflare Workers Cache API and KV
+
+- Use the Cache API for HTTP response caching; use KV only when shared key-value caching is required.
+- Define cache keys, TTLs, invalidation, and behavior on misses explicitly.
+- Keep cached data disposable and never treat it as the only durable source of business data.`,
+  },
+  {
+    id: 'tool.cloudflare.ratelimit',
+    order: 1250,
+    applies: (config) => config.tools.includes('cloudflare-ratelimit'),
+    render: () => `### Tool: Cloudflare Workers Rate Limiting
+
+- Use a Workers Rate Limiting binding behind the application-owned rate-limit boundary.
+- Define the protected operation, stable identifier, period, limit, and response behavior.
+- Test policy behavior at the configured boundary and under bursts.`,
+  },
+  {
+    id: 'tool.cloudflare.queues',
+    order: 1260,
+    applies: (config) => config.tools.includes('cloudflare-queues'),
+    render: () => `### Tool: Cloudflare Queues
+
+- Use Cloudflare Queues for asynchronous delivery and configure producers and consumers explicitly.
+- Make consumers idempotent and define batch, retry, dead-letter, and observability behavior.
+- Keep message payloads versioned and pass identifiers instead of sensitive or oversized data.`,
   },
   {
     id: 'agent-mode.plan-only',

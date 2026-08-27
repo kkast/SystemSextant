@@ -14,11 +14,15 @@ pnpm build
 node packages/cli/dist/bin/systemsextant.js
 ```
 
-The bare interface lets you start a new session or reopen a saved one. A new session asks about the product, architecture starter, capabilities, and how the receiving coding agent should work. Before saving, you can review answers and both generated artifacts.
+For convenience, use `pnpm dev` to build and launch the CLI in one command.
 
-Questions start from the challenge rather than a vendor product. For example, caching, distributed rate limiting, and reliable background delivery are separate choices; selecting Upstash maps them to Redis, Ratelimit, and QStash respectively.
+The bare interface lets you start a new session or reopen a saved one. A new session asks about the product, frontend, backend, data and infrastructure needs, authentication, and how the receiving coding agent should work. Before saving, you can review answers and both generated artifacts.
+
+Caching, distributed rate limiting, and reliable background delivery are separate choices. They use Upstash Redis, Ratelimit, and QStash, or Cloudflare-native alternatives when Cloudflare Workers is the selected backend.
 
 Completed sessions are stored in the operating system's application-data directory. Saved sessions can be reopened, viewed, copied, exported, or deleted.
+
+Choose **Supported stacks and tools** from the home screen to browse every currently selectable option and discussion-only future additions.
 
 ## Product direction
 

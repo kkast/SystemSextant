@@ -8,6 +8,7 @@ import {
   getQuestionSequence,
   normalizeProjectConfig,
   ProjectConfigV1Schema,
+  renderSupportedStackCatalog,
   type QuestionnaireAnswers,
   type PromptBlock,
   type SessionRecord,
@@ -17,50 +18,87 @@ import {
 const baseAnswers: QuestionnaireAnswers = {
   projectName: 'Example platform',
   productSummary: 'A platform that helps teams coordinate technical projects.',
-  architecture: 'nextjs-express',
-  capabilities: ['database', 'authentication', 'real-time'],
-  databaseType: 'postgresql',
-  realtimeDirection: 'bidirectional',
+  frontend: 'nextjs',
+  backend: 'express',
+  realtimeMode: 'websocket',
+  database: 'postgresql',
+  databaseProvider: 'supabase',
+  dataAccess: 'drizzle',
+  fileStorage: 'supabase-storage',
+  infrastructure: [],
+  authService: 'supabase-auth',
+  loginMethods: ['github', 'magic-link'],
+  agentMode: 'plan-then-build',
+};
+
+const infrastructureAnswers: QuestionnaireAnswers = {
+  projectName: 'Infrastructure platform',
+  productSummary: 'A platform that verifies managed infrastructure selections.',
+  frontend: 'nextjs',
+  backend: 'cloudflare-workers',
+  realtimeMode: 'none',
+  database: 'none',
+  fileStorage: 'none',
+  infrastructure: ['caching', 'rate-limiting', 'background-jobs'],
+  cacheProvider: 'upstash',
+  rateLimitProvider: 'upstash',
+  queueProvider: 'upstash',
+  authService: 'none',
+  loginMethods: [],
   agentMode: 'plan-then-build',
 };
 
 describe('questionnaire', () => {
-  it('explains when a separate Express server is useful', () => {
-    const architectureQuestion = getQuestionSequence({}).find(({ id }) => id === 'architecture');
+  it('lists all current stack tools in the supported stack catalog', () => {
+    const catalog = renderSupportedStackCatalog();
+    expect(catalog).toContain('Upstash Redis');
+    expect(catalog).toContain('Cloudflare Queues');
+    expect(catalog).toContain('Potential additions to discuss');
+  });
+
+  it('explains each backend and only offers Next.js server features with Next.js', () => {
+    const backendQuestion = getQuestionSequence({ frontend: 'nextjs' }).find(
+      ({ id }) => id === 'backend',
+    );
     const expressOption =
-      architectureQuestion?.kind === 'single'
-        ? architectureQuestion.options.find(({ value }) => value === 'nextjs-express')
+      backendQuestion?.kind === 'single'
+        ? backendQuestion.options.find(({ value }) => value === 'express')
         : undefined;
 
     expect(expressOption?.description).toContain('WebSockets');
-    expect(expressOption?.description).toContain('long-running jobs');
+    expect(expressOption?.description).toContain('long-lived');
+    expect(
+      getQuestionSequence({ frontend: 'vite-vanilla' }).find(({ id }) => id === 'backend'),
+    ).not.toMatchObject({
+      options: expect.arrayContaining([expect.objectContaining({ value: 'nextjs' })]),
+    });
   });
 
   it('activates only relevant follow-up questions', () => {
-    const withoutCapabilities = getQuestionSequence({ capabilities: [] }).map(({ id }) => id);
-    const withCapabilities = getQuestionSequence({
-      capabilities: ['database', 'real-time'],
+    const withoutDatabase = getQuestionSequence({ database: 'none', authService: 'none' }).map(
+      ({ id }) => id,
+    );
+    const withDatabaseAndAuth = getQuestionSequence({
+      database: 'postgresql',
+      authService: 'authjs',
     }).map(({ id }) => id);
-
-    expect(withoutCapabilities).not.toContain('databaseType');
-    expect(withoutCapabilities).not.toContain('realtimeDirection');
-    expect(withCapabilities).toContain('databaseType');
-    expect(withCapabilities).toContain('realtimeDirection');
+    expect(withoutDatabase).not.toContain('databaseProvider');
+    expect(withoutDatabase).not.toContain('loginMethods');
+    expect(withDatabaseAndAuth).toContain('databaseProvider');
+    expect(withDatabaseAndAuth).toContain('dataAccess');
+    expect(withDatabaseAndAuth).toContain('loginMethods');
   });
 
-  it('asks for the challenge solution only when an applicable challenge is selected', () => {
-    expect(getQuestionSequence({ capabilities: ['database'] }).map(({ id }) => id)).not.toContain(
-      'managedServicePreference',
-    );
-    expect(getQuestionSequence({ capabilities: ['caching'] }).map(({ id }) => id)).toContain(
-      'managedServicePreference',
-    );
-    expect(getQuestionSequence({ capabilities: ['rate-limiting'] }).map(({ id }) => id)).toContain(
-      'managedServicePreference',
-    );
-    expect(
-      getQuestionSequence({ capabilities: ['background-jobs'] }).map(({ id }) => id),
-    ).toContain('managedServicePreference');
+  it('offers Cloudflare D1 only with Cloudflare Workers', () => {
+    const databaseOptions = (backend: 'express' | 'cloudflare-workers') => {
+      const question = getQuestionSequence({ frontend: 'nextjs', backend }).find(
+        ({ id }) => id === 'database',
+      );
+      return question?.kind === 'single' ? question.options.map(({ value }) => value) : [];
+    };
+
+    expect(databaseOptions('express')).not.toContain('cloudflare-d1');
+    expect(databaseOptions('cloudflare-workers')).toContain('cloudflare-d1');
   });
 });
 
@@ -69,11 +107,12 @@ describe('configuration normalization', () => {
     const config = normalizeProjectConfig(baseAnswers);
 
     expect(config.components.map(({ id }) => id)).toEqual(['web-app', 'api-service']);
-    expect(config.resources.map(({ id }) => id)).toEqual(['primary-database']);
+    expect(config.resources.map(({ id }) => id)).toEqual(['primary-database', 'object-storage']);
     expect(config.connections.map(({ protocol }) => protocol)).toEqual([
       'http',
       'database',
       'websocket',
+      'object-storage',
     ]);
     expect(ProjectConfigV1Schema.parse(config)).toEqual(config);
   });
@@ -98,14 +137,7 @@ describe('configuration normalization', () => {
   });
 
   it('maps selected challenges to purpose-built Upstash products', () => {
-    const config = normalizeProjectConfig({
-      projectName: baseAnswers.projectName,
-      productSummary: baseAnswers.productSummary,
-      architecture: baseAnswers.architecture,
-      capabilities: ['caching', 'rate-limiting', 'background-jobs'],
-      managedServicePreference: 'upstash',
-      agentMode: baseAnswers.agentMode,
-    });
+    const config = normalizeProjectConfig(infrastructureAnswers);
 
     expect(config.resources.map(({ technology }) => technology)).toEqual([
       'Upstash QStash',
@@ -119,6 +151,29 @@ describe('configuration normalization', () => {
       from: 'job-queue',
       to: 'background-worker',
     });
+  });
+
+  it('maps each Cloudflare Workers infrastructure need to its native tool', () => {
+    const config = normalizeProjectConfig({
+      ...infrastructureAnswers,
+      cacheProvider: 'cloudflare',
+      rateLimitProvider: 'cloudflare',
+      queueProvider: 'cloudflare',
+    });
+
+    expect(config.tools).toEqual(['cloudflare-cache', 'cloudflare-ratelimit', 'cloudflare-queues']);
+    expect(config.resources.map(({ technology }) => technology)).toEqual([
+      'Cloudflare Queues',
+      'Cloudflare Workers Cache API / KV',
+      'Cloudflare Workers Rate Limiting',
+    ]);
+    expect(compilePrompt(config).blockIds).toEqual(
+      expect.arrayContaining([
+        'tool.cloudflare.cache',
+        'tool.cloudflare.ratelimit',
+        'tool.cloudflare.queues',
+      ]),
+    );
   });
 });
 
@@ -148,14 +203,7 @@ describe('artifact generation', () => {
   );
 
   it('selects independent challenge and tool blocks', () => {
-    const config = normalizeProjectConfig({
-      projectName: baseAnswers.projectName,
-      productSummary: baseAnswers.productSummary,
-      architecture: baseAnswers.architecture,
-      capabilities: ['caching', 'rate-limiting', 'background-jobs'],
-      managedServicePreference: 'upstash',
-      agentMode: baseAnswers.agentMode,
-    });
+    const config = normalizeProjectConfig(infrastructureAnswers);
     const compiled = compilePrompt(config);
 
     expect(compiled.blockIds).toEqual(
@@ -174,20 +222,13 @@ describe('artifact generation', () => {
     expect(compiled.content).toMatchSnapshot();
   });
 
-  it('keeps challenge guidance without tool blocks for provider-neutral configurations', () => {
-    const config = normalizeProjectConfig({
-      projectName: 'Neutral cache',
-      productSummary: 'A provider-neutral application cache for repeated reads.',
-      architecture: 'nextjs',
-      capabilities: ['caching'],
-      managedServicePreference: 'provider-neutral',
-      agentMode: 'plan-only',
-    });
+  it('records the selected frontend, backend, database, ORM, storage, and auth choices', () => {
+    const config = normalizeProjectConfig(baseAnswers);
     const compiled = compilePrompt(config);
-
-    expect(compiled.blockIds).toContain('capability.caching');
-    expect(compiled.blockIds.some((id) => id.startsWith('tool.upstash.'))).toBe(false);
-    expect(compiled.content).not.toContain('@upstash/redis');
+    expect(compiled.content).toContain('Supabase PostgreSQL with Drizzle ORM');
+    expect(compiled.content).toContain('Supabase Storage');
+    expect(compiled.content).toContain('authentication.service**: supabase-auth');
+    expect(compiled.content).toContain('authentication.login-methods**: github, magic-link');
   });
 
   it('does not change an existing prompt when an unrelated tool block is registered', () => {

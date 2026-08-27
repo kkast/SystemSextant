@@ -2,7 +2,6 @@ import { Text } from 'ink';
 import { useMemo, useState } from 'react';
 import {
   getQuestionSequence,
-  type Capability,
   type DraftQuestionnaireAnswers,
   type Question,
   type QuestionId,
@@ -31,30 +30,21 @@ function setAnswer(
       return { ...answers, projectName: String(value) };
     case 'productSummary':
       return { ...answers, productSummary: String(value) };
-    case 'architecture':
-      return {
-        ...answers,
-        architecture: value as NonNullable<DraftQuestionnaireAnswers['architecture']>,
-      };
-    case 'capabilities':
-      return { ...answers, capabilities: value as Capability[] };
-    case 'databaseType':
-      return {
-        ...answers,
-        databaseType: value as NonNullable<DraftQuestionnaireAnswers['databaseType']>,
-      };
-    case 'realtimeDirection':
-      return {
-        ...answers,
-        realtimeDirection: value as NonNullable<DraftQuestionnaireAnswers['realtimeDirection']>,
-      };
-    case 'managedServicePreference':
-      return {
-        ...answers,
-        managedServicePreference: value as NonNullable<
-          DraftQuestionnaireAnswers['managedServicePreference']
-        >,
-      };
+    case 'frontend':
+    case 'backend':
+    case 'realtimeMode':
+    case 'database':
+    case 'databaseProvider':
+    case 'dataAccess':
+    case 'fileStorage':
+    case 'authService':
+    case 'cacheProvider':
+    case 'rateLimitProvider':
+    case 'queueProvider':
+      return { ...answers, [questionId]: String(value) } as DraftQuestionnaireAnswers;
+    case 'infrastructure':
+    case 'loginMethods':
+      return { ...answers, [questionId]: value } as DraftQuestionnaireAnswers;
     case 'agentMode':
       return {
         ...answers,
@@ -138,7 +128,7 @@ export function QuestionnaireScreen({
         <MultiSelect
           key={question.id}
           options={question.options}
-          initialValues={(answers.capabilities ?? []) as string[]}
+          initialValues={(answers[question.id] ?? []) as string[]}
           onSubmit={submit}
           onCancel={back}
         />

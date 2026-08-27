@@ -22,8 +22,14 @@ async function temporaryDirectory(): Promise<string> {
 const answers: QuestionnaireAnswers = {
   projectName: 'Stored session',
   productSummary: 'A deterministic session used to verify local persistence.',
-  architecture: 'typescript-cli',
-  capabilities: [],
+  frontend: 'vite-vanilla',
+  backend: 'none',
+  realtimeMode: 'none',
+  database: 'none',
+  fileStorage: 'none',
+  infrastructure: [],
+  authService: 'none',
+  loginMethods: [],
   agentMode: 'plan-only',
 };
 

@@ -6,6 +6,7 @@ import {
   generateArtifacts,
   getQuestionSequence,
   normalizeProjectConfig,
+  renderSupportedStackCatalog,
   type ArtifactBundle,
   type Clock,
   type DraftQuestionnaireAnswers,
@@ -51,7 +52,7 @@ export interface AppProps {
 interface ViewState {
   readonly title: string;
   readonly content: string;
-  readonly returnTo: 'preview' | 'detail';
+  readonly returnTo: 'preview' | 'detail' | 'home';
 }
 
 function errorMessage(reason: unknown): string {
@@ -359,11 +360,18 @@ export function App({
         options={[
           { value: 'new', label: 'New session' },
           { value: 'past', label: 'Past sessions' },
+          {
+            value: 'catalog',
+            label: 'Supported stacks and tools',
+            description: 'Browse every selectable stack option and current tool mapping.',
+          },
           { value: 'exit', label: 'Exit' },
         ]}
         onSelect={(value) => {
           if (value === 'new') startNewSession();
           else if (value === 'past') openPastSessions();
+          else if (value === 'catalog')
+            openView('Supported stacks and tools', renderSupportedStackCatalog(), 'home');
           else exit();
         }}
       />

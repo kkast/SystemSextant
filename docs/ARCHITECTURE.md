@@ -34,8 +34,13 @@ questionnaire answers
   -> local SessionRepository
 ```
 
-- The questionnaire uses product-language choices and asks follow-up questions only when a selected capability requires them.
-- Infrastructure questions identify the challenge before selecting a product. Caching, distributed rate limiting, and reliable message delivery remain distinct purposes even when one vendor can support several of them.
+- The questionnaire uses product-language choices, explains why each option is useful, filters incompatible combinations, and asks follow-up questions only when required.
+- Frontend selection is independent from backend selection: create a vanilla TypeScript frontend with Vite, use Next.js, or choose no frontend.
+- Backend selection follows frontend selection and offers Next.js server features, Express, Cloudflare Workers, or no backend. Express and Cloudflare Workers are alternatives within this single question; Next.js server features require the Next.js frontend.
+- Data questions select a database and provider before offering only compatible ORM or direct data-access choices.
+- File storage is selected independently as none, Supabase Storage, or Cloudflare R2.
+- Infrastructure toggles represent application caching, distributed rate limiting, and reliable background delivery or queues. Upstash is available for every backend. When Cloudflare Workers is selected, each infrastructure need can instead use its Cloudflare-native service.
+- Authentication selects a service before offering only login methods compatible with that service.
 - Normalization expands shortcuts into explicit components, resources, connections, contracts, and confirmed decisions.
 - Zod validates data at each boundary and rejects invalid graph references or duplicate stable IDs.
 - Artifact generation uses stable ordering, excludes timestamps from project artifacts, and hashes the exact stored content.
@@ -65,7 +70,7 @@ Provider-independent challenge guidance and provider-specific tool guidance are 
 
 `ProjectConfigV1.tools` records selected tools by stable ID, and every session records its selected prompt-block IDs. Tests verify that unrelated unselected blocks leave an existing prompt byte-identical, selected tools add their own blocks without replacing generic guidance, block IDs stay unique, and ordering remains deterministic.
 
-Current Upstash mappings follow the challenge rather than asking whether to add Redis:
+Upstash mappings follow the challenge rather than asking whether to add Redis and remain available for every backend:
 
 | Challenge                                                        | Selected tool                       | Prompt block               |
 | ---------------------------------------------------------------- | ----------------------------------- | -------------------------- |
@@ -73,9 +78,19 @@ Current Upstash mappings follow the challenge rather than asking whether to add 
 | Distributed rate limiting                                        | Upstash Ratelimit backed by Redis   | `tool.upstash.ratelimit`   |
 | Reliable background delivery, retries, schedules, or FIFO queues | Upstash QStash                      | `tool.upstash.qstash`      |
 
-QStash is the messaging product and is not modeled as merely a Redis queue. Provider SDKs remain behind the stable capability boundaries recorded in `project.yaml`. A provider-neutral choice keeps those boundaries without adding any Upstash tool block.
+QStash is the messaging product and is not modeled as merely a Redis queue. The current questionnaire maps each selected infrastructure challenge to its corresponding Upstash product. Provider SDKs remain behind the stable capability boundaries recorded in `project.yaml`, so alternative providers can be added later as independent tool blocks.
 
-Product references: [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted), [Upstash Ratelimit](https://upstash.com/docs/redis/sdks/ratelimit-ts/methods), and [QStash queues](https://upstash.com/docs/qstash/features/queues).
+When Cloudflare Workers is the backend, the questionnaire may map each selected challenge to either Upstash or the corresponding Cloudflare-native tool:
+
+| Challenge                                                        | Cloudflare-native tool                                      | Prompt block                 |
+| ---------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------- |
+| Application caching                                              | Workers Cache API; KV when shared key-value caching is needed | `tool.cloudflare.cache`      |
+| Distributed rate limiting                                        | Workers Rate Limiting binding                               | `tool.cloudflare.ratelimit`  |
+| Reliable background delivery, retries, schedules, or FIFO queues | Cloudflare Queues                                           | `tool.cloudflare.queues`     |
+
+[Cloudflare Queues](https://developers.cloudflare.com/queues/platform/pricing/) has a free tier. Cloudflare-native infrastructure is offered only with a Cloudflare Workers backend; Upstash remains an available alternative for that backend and the default for Next.js server features or Express.
+
+Product references: [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted), [Upstash Ratelimit](https://upstash.com/docs/redis/sdks/ratelimit-ts/methods), [QStash queues](https://upstash.com/docs/qstash/features/queues), [Workers Cache](https://developers.cloudflare.com/workers/runtime-apis/cache/), [Workers Rate Limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), and [Cloudflare Queues](https://developers.cloudflare.com/queues/).
 
 ## Technology choices
 

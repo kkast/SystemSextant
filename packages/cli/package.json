@@ -18,6 +18,7 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "dev": "pnpm build && node dist/bin/systemsextant.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

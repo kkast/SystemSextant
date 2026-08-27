@@ -1,7 +1,8 @@
 import { Text } from 'ink';
 import { useEffect, useState } from 'react';
 import {
-  architectureLabels,
+  backendLabels,
+  frontendLabels,
   type SessionMetadataV1,
   type SessionRecord,
   type SessionRepository,
@@ -44,7 +45,7 @@ export function SessionsScreen({ repository, refreshKey, onOpen, onBack }: Sessi
   const options: MenuOption<string>[] = sessions.map((session) => ({
     value: session.id,
     label: session.title,
-    description: `${architectureLabels[session.architectureStarter]} · ${new Date(session.createdAt).toLocaleString()}`,
+    description: `${frontendLabels[session.frontend]} + ${backendLabels[session.backend]} · ${new Date(session.createdAt).toLocaleString()}`,
   }));
   options.push({ value: '__back__', label: 'Back' });
 

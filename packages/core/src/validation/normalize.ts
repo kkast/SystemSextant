@@ -10,105 +10,133 @@ import {
   type Resource,
 } from '../schema/project-config.js';
 
+const databaseNames = {
+  supabase: 'Supabase PostgreSQL',
+  neon: 'Neon PostgreSQL',
+  'mongodb-atlas': 'MongoDB Atlas',
+  cloudflare: 'Cloudflare D1',
+} as const;
+
+const dataAccessNames = {
+  prisma: 'Prisma ORM',
+  drizzle: 'Drizzle ORM',
+  'native-driver': 'native driver / binding API',
+} as const;
+const authNames = { 'supabase-auth': 'Supabase Auth', authjs: 'Auth.js', privy: 'Privy' } as const;
+const storageNames = {
+  'supabase-storage': 'Supabase Storage',
+  'cloudflare-r2': 'Cloudflare R2',
+} as const;
+
 export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConfigV1 {
   const answers = parseQuestionnaireAnswers(input);
-  const capabilities = normalizeCapabilities(answers.capabilities);
+  const selectedCapabilities = [
+    ...(answers.database === 'none' ? [] : (['database'] as const)),
+    ...(answers.authService === 'none' ? [] : (['authentication'] as const)),
+    ...(answers.realtimeMode === 'none' ? [] : (['real-time'] as const)),
+    ...(answers.fileStorage === 'none' ? [] : (['file-storage'] as const)),
+    ...answers.infrastructure,
+  ];
+  const capabilities = normalizeCapabilities(selectedCapabilities);
+  const infrastructureProviders = {
+    caching: answers.cacheProvider,
+    'rate-limiting': answers.rateLimitProvider,
+    'background-jobs': answers.queueProvider,
+  } as const;
+  const tools = toolCatalog
+    .filter(
+      (tool) =>
+        capabilities.includes(tool.challenge) &&
+        infrastructureProviders[tool.challenge] === tool.provider,
+    )
+    .map((tool) => tool.id);
   const components: Component[] = [];
   const resources: Resource[] = [];
   const connections: Connection[] = [];
   const contracts: Contract[] = [];
   const decisions: Decision[] = [];
-  const useUpstash = answers.managedServicePreference === 'upstash';
-  const tools = useUpstash
-    ? toolCatalog.filter((tool) => capabilities.includes(tool.challenge)).map((tool) => tool.id)
-    : [];
 
-  switch (answers.architecture) {
-    case 'nextjs':
-      components.push({
-        id: 'web-app',
-        name: 'Web application',
-        kind: 'nextjs-app',
-        technology: 'Next.js',
-        responsibilities: ['User interface', 'Application entry point'],
-        capabilities: [],
-      });
-      break;
-    case 'nextjs-express':
-      components.push(
-        {
-          id: 'web-app',
-          name: 'Web application',
-          kind: 'nextjs-app',
-          technology: 'Next.js',
-          responsibilities: ['User interface', 'Client-facing web experience'],
-          capabilities: [],
-        },
-        {
-          id: 'api-service',
-          name: 'API service',
-          kind: 'express-service',
-          technology: 'Express',
-          responsibilities: ['Application API', 'Server-side business operations'],
-          capabilities: [],
-        },
-      );
-      connections.push({
-        id: 'web-to-api',
-        from: 'web-app',
-        to: 'api-service',
-        protocol: 'http',
-        purpose: 'Application API requests',
-      });
-      contracts.push({
-        id: 'application-api',
-        name: 'Application API',
-        kind: 'http-api',
-        description: 'Stable contract between the web application and API service.',
-        participants: ['web-app', 'api-service'],
-      });
-      break;
-    case 'typescript-cli':
-      components.push({
-        id: 'cli-app',
-        name: 'CLI application',
-        kind: 'typescript-cli',
-        technology: 'TypeScript CLI',
-        responsibilities: ['Command-line user experience', 'Application orchestration'],
-        capabilities: [],
-      });
-      break;
-    case 'custom-typescript':
-      components.push({
-        id: 'typescript-system',
-        name: 'TypeScript system',
-        kind: 'custom-typescript',
-        technology: 'TypeScript',
-        responsibilities: ['Deliver the described product outcome'],
-        capabilities: [],
-      });
-      break;
+  if (answers.frontend === 'nextjs') {
+    components.push({
+      id: 'web-app',
+      name: 'Web application',
+      kind: 'nextjs-app',
+      technology: 'Next.js',
+      responsibilities: ['React user interface', 'Routing and rendering'],
+      capabilities: [],
+    });
+  } else if (answers.frontend === 'vite-vanilla') {
+    components.push({
+      id: 'web-app',
+      name: 'Web application',
+      kind: 'vite-vanilla-app',
+      technology: 'Create Vite with vanilla TypeScript',
+      responsibilities: ['Browser user interface', 'Client-side application entry point'],
+      capabilities: [],
+    });
   }
 
-  const serverOwner =
-    components.find((component) => component.id === 'api-service') ?? components[0];
+  if (answers.backend === 'nextjs') {
+    const webApp = components.find(({ id }) => id === 'web-app');
+    if (!webApp) throw new Error('Next.js server features require a Next.js web application.');
+    webApp.responsibilities.push(
+      'Route handlers and Server Actions',
+      'Server-side business operations',
+    );
+  } else if (answers.backend === 'express') {
+    components.push({
+      id: 'api-service',
+      name: 'API service',
+      kind: 'express-service',
+      technology: 'Express',
+      responsibilities: ['Application API', 'Long-lived server operations and custom middleware'],
+      capabilities: [],
+    });
+  } else if (answers.backend === 'cloudflare-workers') {
+    components.push({
+      id: 'api-service',
+      name: 'Edge API',
+      kind: 'cloudflare-worker',
+      technology: 'Cloudflare Workers',
+      responsibilities: ['Globally distributed request handling', 'Short-lived edge operations'],
+      capabilities: [],
+    });
+  }
+
+  const webApp = components.find(({ id }) => id === 'web-app');
+  const serverOwner = components.find(({ id }) => id === 'api-service') ?? webApp;
   if (!serverOwner) throw new Error('Architecture did not produce a component.');
 
+  if (webApp && serverOwner.id !== webApp.id) {
+    connections.push({
+      id: 'web-to-api',
+      from: webApp.id,
+      to: serverOwner.id,
+      protocol: 'http',
+      purpose: 'Application API requests',
+    });
+    contracts.push({
+      id: 'application-api',
+      name: 'Application API',
+      kind: 'http-api',
+      description: 'Stable contract between the web application and backend service.',
+      participants: [webApp.id, serverOwner.id],
+    });
+  }
+
   const addCapability = (componentId: string, capability: (typeof capabilities)[number]): void => {
-    const component = components.find((candidate) => candidate.id === componentId);
-    if (component && !component.capabilities.includes(capability)) {
+    const component = components.find(({ id }) => id === componentId);
+    if (component && !component.capabilities.includes(capability))
       component.capabilities.push(capability);
-    }
   };
 
-  if (capabilities.includes('database')) {
-    const databaseTechnology =
-      answers.databaseType === 'postgresql' ? 'PostgreSQL' : 'Document / NoSQL database';
+  if (answers.database !== 'none' && answers.databaseProvider && answers.dataAccess) {
+    const technology = `${databaseNames[answers.databaseProvider]} with ${dataAccessNames[answers.dataAccess]}`;
     resources.push({
       id: 'primary-database',
       name: 'Primary database',
       kind: 'database',
-      technology: databaseTechnology,
+      technology,
       purpose: 'Persistent application data',
       ownerComponentId: serverOwner.id,
     });
@@ -123,34 +151,28 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
       id: 'data-access-boundary',
       name: 'Data access boundary',
       kind: 'repository',
-      description: 'Keep application logic independent from database-specific types and clients.',
+      description: 'Keep application logic independent from database and ORM-specific types.',
       participants: [serverOwner.id],
     });
     addCapability(serverOwner.id, 'database');
   }
 
-  if (capabilities.includes('authentication')) {
+  if (answers.authService !== 'none') {
     addCapability(serverOwner.id, 'authentication');
-    if (components.some((component) => component.id === 'web-app')) {
-      addCapability('web-app', 'authentication');
-    }
+    if (webApp) addCapability(webApp.id, 'authentication');
   }
 
-  if (capabilities.includes('real-time')) {
-    const protocol = answers.realtimeDirection === 'one-way' ? 'sse' : 'websocket';
+  if (answers.realtimeMode !== 'none') {
     addCapability(serverOwner.id, 'real-time');
-    if (
-      serverOwner.id !== 'web-app' &&
-      components.some((component) => component.id === 'web-app')
-    ) {
-      addCapability('web-app', 'real-time');
+    if (webApp) addCapability(webApp.id, 'real-time');
+    if (webApp && webApp.id !== serverOwner.id) {
       connections.push({
         id: 'real-time-events',
-        from: 'web-app',
+        from: webApp.id,
         to: serverOwner.id,
-        protocol,
+        protocol: answers.realtimeMode === 'sse' ? 'sse' : 'websocket',
         purpose:
-          protocol === 'sse'
+          answers.realtimeMode === 'sse'
             ? 'Receive server-sent application events'
             : 'Exchange bidirectional application events',
       });
@@ -159,26 +181,32 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
       id: 'real-time-event-contract',
       name: 'Real-time event contract',
       kind: 'event',
-      description: 'Versioned event names and payloads independent from the selected transport.',
-      participants: serverOwner.id === 'web-app' ? [serverOwner.id] : ['web-app', serverOwner.id],
+      description: 'Versioned event names and payloads independent from the transport.',
+      participants:
+        webApp && webApp.id !== serverOwner.id ? [webApp.id, serverOwner.id] : [serverOwner.id],
     });
   }
 
-  if (capabilities.includes('background-jobs')) {
+  if (answers.infrastructure.includes('background-jobs')) {
     components.push({
       id: 'background-worker',
-      name: 'Background worker',
+      name: 'Background job handler',
       kind: 'background-worker',
-      technology: useUpstash ? 'TypeScript HTTP job handler' : 'TypeScript worker',
-      responsibilities: ['Execute asynchronous, retried, or scheduled work'],
+      technology:
+        answers.queueProvider === 'cloudflare'
+          ? 'Cloudflare Queue consumer'
+          : answers.backend === 'cloudflare-workers'
+            ? 'Cloudflare Worker HTTP handler'
+            : 'TypeScript HTTP job handler',
+      responsibilities: ['Handle asynchronous, retried, or scheduled background deliveries'],
       capabilities: ['background-jobs'],
     });
     resources.push({
       id: 'job-queue',
-      name: 'Job queue',
+      name: 'Message queue',
       kind: 'queue',
-      technology: useUpstash ? 'Upstash QStash' : 'Provider-neutral queue / event system',
-      purpose: 'Reliable delivery, retry, and scheduling of background work',
+      technology: answers.queueProvider === 'cloudflare' ? 'Cloudflare Queues' : 'Upstash QStash',
+      purpose: 'Reliable delivery, retries, scheduling, and queueing',
       ownerComponentId: serverOwner.id,
     });
     connections.push(
@@ -187,14 +215,14 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
         from: serverOwner.id,
         to: 'job-queue',
         protocol: 'queue',
-        purpose: 'Enqueue background work',
+        purpose: 'Publish background work',
       },
       {
         id: 'job-queue-to-background-worker',
         from: 'job-queue',
         to: 'background-worker',
         protocol: 'queue',
-        purpose: 'Deliver background work to its handler',
+        purpose: 'Deliver work to its HTTP handler',
       },
     );
     contracts.push({
@@ -208,12 +236,12 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     addCapability(serverOwner.id, 'background-jobs');
   }
 
-  if (capabilities.includes('file-storage')) {
+  if (answers.fileStorage !== 'none') {
     resources.push({
       id: 'object-storage',
       name: 'Object storage',
       kind: 'object-storage',
-      technology: 'S3-compatible object storage',
+      technology: storageNames[answers.fileStorage],
       purpose: 'Store user or application files',
       ownerComponentId: serverOwner.id,
     });
@@ -234,13 +262,16 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     addCapability(serverOwner.id, 'file-storage');
   }
 
-  if (capabilities.includes('caching')) {
+  if (answers.infrastructure.includes('caching')) {
     resources.push({
       id: 'application-cache',
       name: 'Application cache',
       kind: 'cache',
-      technology: useUpstash ? 'Upstash Redis' : 'Provider-neutral Redis-compatible cache',
-      purpose: 'Reduce latency and repeated work for explicitly selected data and operations',
+      technology:
+        answers.cacheProvider === 'cloudflare'
+          ? 'Cloudflare Workers Cache API / KV'
+          : 'Upstash Redis',
+      purpose: 'Reduce latency and repeated work for selected operations',
       ownerComponentId: serverOwner.id,
     });
     connections.push({
@@ -260,15 +291,16 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     addCapability(serverOwner.id, 'caching');
   }
 
-  if (capabilities.includes('rate-limiting')) {
+  if (answers.infrastructure.includes('rate-limiting')) {
     resources.push({
       id: 'rate-limit-store',
       name: 'Rate-limit state',
       kind: 'rate-limit-store',
-      technology: useUpstash
-        ? 'Upstash Redis with @upstash/ratelimit'
-        : 'Provider-neutral distributed rate limiter',
-      purpose: 'Coordinate request or operation limits across runtime instances',
+      technology:
+        answers.rateLimitProvider === 'cloudflare'
+          ? 'Cloudflare Workers Rate Limiting'
+          : 'Upstash Redis with @upstash/ratelimit',
+      purpose: 'Coordinate limits across runtime instances',
       ownerComponentId: serverOwner.id,
     });
     connections.push({
@@ -289,76 +321,54 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     addCapability(serverOwner.id, 'rate-limiting');
   }
 
+  const userDecisions: Array<[string, string | string[]]> = [
+    ['frontend', answers.frontend],
+    ['backend', answers.backend],
+    ['realtime.mode', answers.realtimeMode],
+    ['database.type', answers.database],
+    ['file-storage.provider', answers.fileStorage],
+    ['infrastructure', answers.infrastructure],
+    ['authentication.service', answers.authService],
+    ['authentication.login-methods', answers.loginMethods],
+    ['capabilities', capabilities],
+    ['agent.mode', answers.agentMode],
+  ];
+  if (answers.databaseProvider) userDecisions.push(['database.provider', answers.databaseProvider]);
+  if (answers.dataAccess) userDecisions.push(['database.data-access', answers.dataAccess]);
+  if (answers.cacheProvider) userDecisions.push(['cache.provider', answers.cacheProvider]);
+  if (answers.rateLimitProvider)
+    userDecisions.push(['rate-limiting.provider', answers.rateLimitProvider]);
+  if (answers.queueProvider) userDecisions.push(['queue.provider', answers.queueProvider]);
   decisions.push(
-    {
-      key: 'architecture.starter',
-      value: answers.architecture,
-      source: 'user',
-      status: 'confirmed',
-    },
-    {
-      key: 'capabilities',
-      value: capabilities,
-      source: 'user',
-      status: 'confirmed',
-    },
+    ...userDecisions.map(([key, value]) => ({
+      key,
+      value,
+      source: 'user' as const,
+      status: 'confirmed' as const,
+    })),
   );
-
-  if (answers.databaseType) {
+  if (answers.authService !== 'none')
     decisions.push({
-      key: 'database.type',
-      value: answers.databaseType,
-      source: 'user',
-      status: 'confirmed',
-    });
-  }
-  if (answers.realtimeDirection) {
-    decisions.push({
-      key: 'realtime.direction',
-      value: answers.realtimeDirection,
-      source: 'user',
-      status: 'confirmed',
-    });
-  }
-  if (answers.managedServicePreference) {
-    decisions.push({
-      key: 'managed-services.preference',
-      value: answers.managedServicePreference,
-      source: 'user',
-      status: 'confirmed',
-      rationale:
-        answers.managedServicePreference === 'upstash'
-          ? 'Map each selected challenge to the purpose-built Upstash product.'
-          : 'Keep challenge boundaries stable without selecting a managed vendor.',
-    });
-  }
-
-  decisions.push(
-    {
-      key: 'agent.mode',
-      value: answers.agentMode,
-      source: 'user',
-      status: 'confirmed',
-    },
-    {
-      key: 'agent.question-policy',
-      value: 'blocking-only',
+      key: 'authentication.technology',
+      value: authNames[answers.authService],
       source: 'default',
       status: 'confirmed',
-      rationale: 'Ask only when a consequential decision cannot be resolved safely.',
-    },
-  );
+    });
+  decisions.push({
+    key: 'agent.question-policy',
+    value: 'blocking-only',
+    source: 'default',
+    status: 'confirmed',
+    rationale: 'Ask only when a consequential decision cannot be resolved safely.',
+  });
 
   return ProjectConfigV1Schema.parse({
     schemaVersion: 1,
     name: answers.projectName.trim(),
     language: 'typescript',
-    product: {
-      summary: answers.productSummary.trim(),
-      goals: [],
-      constraints: [],
-    },
-    architectureStarter: answers.architecture,
+    product: { summary: answers.productSummary.trim(), goals: [], constraints: [] },
+    frontend: answers.frontend,
+    backend: answers.backend,
     capabilities,
     tools,
     components,
@@ -366,9 +376,6 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     connections,
     contracts,
     decisions,
-    agentPreferences: {
-      mode: answers.agentMode,
-      questionPolicy: 'blocking-only',
-    },
+    agentPreferences: { mode: answers.agentMode, questionPolicy: 'blocking-only' },
   });
 }

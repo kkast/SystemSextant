@@ -10,11 +10,17 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 - [x] Launch the interactive experience with bare `systemsextant`.
 - [x] Start a new session or browse saved sessions from the home screen.
+- [x] Browse a concise catalog of all selectable stacks, providers, and infrastructure tools from the home screen.
 - [x] Ask deterministic product and architecture questions with conditional follow-ups.
-- [x] Support Next.js, Next.js with Express, TypeScript CLI, and custom TypeScript starters.
-- [x] Add database, authentication, real-time, background-job, and file-storage capabilities.
-- [x] Ask about caching, distributed rate limiting, and reliable message-delivery challenges before selecting infrastructure.
-- [x] Offer Upstash or provider-neutral handling for applicable challenges.
+- [x] Replace bundled architecture starters with an independent frontend choice: vanilla TypeScript with Create Vite, Next.js, or no frontend.
+- [x] Add an independent backend choice: Next.js server features, Express, Cloudflare Workers, or no backend. Express and Cloudflare Workers are alternatives within the same question.
+- [x] Select a database and provider, then filter ORM and direct data-access choices by database compatibility.
+- [x] Select no file storage, Supabase Storage, or Cloudflare R2.
+- [x] Select application caching, distributed rate limiting, and reliable background delivery or queues as independent infrastructure needs.
+- [x] Map selected infrastructure challenges to Upstash.
+- [x] When Cloudflare Workers is the backend, let each selected infrastructure need use either its Cloudflare-native service or Upstash.
+- [x] Add Cloudflare Cache/KV, Workers Rate Limiting, and Cloudflare Queues as independent tool mappings and prompt blocks.
+- [x] Select an authentication service, then offer only its compatible login methods.
 - [x] Review and edit answers before generating artifacts.
 - [x] View generated artifacts before saving a session.
 - [x] Work locally without an account, model call, telemetry, or runtime network access.
@@ -69,6 +75,7 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 ## Potential
 
+- [ ] Bundle a concise, offline system-design knowledge base that helps coding agents make architecture decisions, with compact structured guidance suitable for less capable models.
 - [ ] Optional Git-based session and template synchronization.
 - [ ] AI-assisted architecture design, interview, and critique modes with explicit acceptance of changes.
 - [ ] Stable JSON commands and agent-readable schema documentation.
