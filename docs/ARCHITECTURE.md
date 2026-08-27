@@ -21,9 +21,13 @@ packages/
     ui/              Reusable Ink controls
     adapters/        Filesystem, app-data, clipboard, clock, ID, and sanitization
     bin/             Published executable entry point
+apps/
+  web/src/
+    app and screens  Browser-native architecture workspace and local library
+    adapters         IndexedDB persistence, clipboard, downloads, clock, and IDs
 ```
 
-`core` owns every rule that must behave identically in a terminal or browser. It has no UI, filesystem, clipboard, or browser dependencies. `cli` renders the current Ink interface and implements Node.js adapters for the ports defined by `core`. A future `apps/web` should depend on `core` and supply browser-local or server-backed adapters.
+`core` owns every rule that must behave identically in a terminal or browser. It has no UI, filesystem, clipboard, or browser dependencies. `cli` renders the Ink interface and implements Node.js adapters. `apps/web` renders a React workspace and implements browser-local adapters with IndexedDB, explicit downloads, and the Clipboard API. A future hosted-data mode can add server-backed adapters without moving product rules out of `core`.
 
 ## Product flow
 
@@ -52,6 +56,8 @@ architecture draft
 - Generation automatically persists one session per unique project-artifact hash. Templates require their own user-provided name and use the project hash for duplicate prevention.
 - Session use cases depend on `SessionRepository`, `Clock`, and `IdGenerator` interfaces so persistence and platform behavior remain replaceable.
 - The CLI repository stages all session files before renaming them into place, then verifies hashes whenever a session is loaded.
+- Browser repositories commit each record in an IndexedDB transaction. Browser sessions persist metadata and validated `project.yaml`, then compile `AGENT_PROMPT.md` from that YAML only when the session is opened. Templates persist validated configurations and never store derived prompts.
+- The browser autosaves editable drafts locally. Browser and CLI application-data stores remain separate; validated `project.yaml` import and export provide an explicit bridge.
 
 ## Prompt design
 
@@ -118,6 +124,8 @@ Product references: [Upstash Redis](https://upstash.com/docs/redis/overall/getst
 | `strip-ansi`                 | Prevents stored or entered text from controlling terminal output.                  |
 | esbuild                      | Bundles the CLI entry point while leaving runtime packages external.               |
 | Vitest                       | Covers core rules, prompt snapshots, adapters, and Ink behavior.                   |
+| React, Vite, and IndexedDB   | Provide a browser-native workspace with device-local persistence.                  |
+| Workers Static Assets       | Hosts the compiled SPA without adding server code or runtime application requests.  |
 
 ## Invariants
 

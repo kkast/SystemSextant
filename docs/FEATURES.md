@@ -75,12 +75,23 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [ ] Clone, rename, export, and import templates.
 - [ ] Detect structurally similar templates.
 - [ ] Add richer component, resource, connection, and contract editing.
-- [ ] Import an existing `project.yaml` and recover draft sessions.
+- [ ] Recover interrupted CLI draft sessions.
 
-## Later: browser and delivery
+## Browser application
 
-- [ ] Build a local or hosted browser interface over the same `core` package.
-- [ ] Add browser-local and server-backed session adapters while keeping schemas compatible.
+- [x] Build a browser-native React workspace over the same `core` package.
+- [x] Autosave editable architecture drafts in IndexedDB.
+- [x] Store browser sessions as validated YAML and metadata, regenerating prompts only when requested.
+- [x] Store browser templates as validated configurations without derived prompt content.
+- [x] Navigate the web workspace sequentially with persistent Previous and Continue controls.
+- [x] Edit named UIs, services, connections, shared resources, and agent workflow in web-native forms.
+- [x] Generate, view, copy, and download `project.yaml` and `AGENT_PROMPT.md` without a backend.
+- [x] Import a validated V2 `project.yaml` as an editable browser draft.
+- [x] Configure the production SPA for Cloudflare Workers Static Assets.
+
+## Later: delivery
+
+- [ ] Add server-backed session adapters while keeping schemas compatible.
 - [ ] Capture detailed runtime constraints, lifecycle commands, and optional container artifacts.
 - [ ] Preview and explicitly export requested scaffolding or automation files without executing them.
 - [ ] Add authentication only when remote storage or shared workspaces require it.

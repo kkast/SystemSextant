@@ -99,6 +99,36 @@ function validateDraft(draft: ArchitectureDraft): ArchitectureDraft {
       if (!host || host.runtime !== 'nextjs') throw new Error('Next.js service features require a Next.js UI host.');
     } else if (!service.deployment) throw new Error('An independent service requires a deployment target.');
   }
+  const hasCloudflareWorker = parsed.services.some((service) => service.runtime === 'cloudflare-workers');
+  if (parsed.database) {
+    const compatible = {
+      postgresql: { providers: ['supabase', 'neon'], access: ['prisma', 'drizzle'] },
+      mongodb: { providers: ['mongodb-atlas'], access: ['prisma', 'native-driver'] },
+      'cloudflare-d1': { providers: ['cloudflare'], access: ['drizzle', 'native-driver'] },
+    } as const;
+    const allowed = compatible[parsed.database.type];
+    if (!(allowed.providers as readonly string[]).includes(parsed.database.provider) || !(allowed.access as readonly string[]).includes(parsed.database.dataAccess))
+      throw new Error('Choose a database provider and data-access option compatible with the database.');
+    if (parsed.database.type === 'cloudflare-d1' && !hasCloudflareWorker)
+      throw new Error('Cloudflare D1 requires a Cloudflare Workers service.');
+  }
+  if ([parsed.cache, parsed.rateLimit, parsed.queue].some((resource) => resource?.provider === 'cloudflare') && !hasCloudflareWorker)
+    throw new Error('Cloudflare-native infrastructure requires a Cloudflare Workers service.');
+  if (parsed.realtimeModes.length > 0 && parsed.services.length === 0)
+    throw new Error('Real-time communication requires a service.');
+  if (parsed.realtimeModes.includes('websocket') && !parsed.services.some((service) => service.runtime === 'express'))
+    throw new Error('WebSockets require an Express service in the current product.');
+  const authService = parsed.authService;
+  if (authService !== 'none') {
+    if (parsed.loginMethods.length === 0) throw new Error('Choose at least one login method.');
+    const compatibleMethods = {
+      'supabase-auth': ['github', 'email-password', 'magic-link'],
+      authjs: ['github', 'magic-link'],
+      privy: ['github', 'magic-link', 'wallet'],
+    } as const;
+    if (parsed.loginMethods.some((method) => !(compatibleMethods[authService] as readonly string[]).includes(method)))
+      throw new Error('Choose login methods supported by the authentication service.');
+  }
   return parsed;
 }
 
@@ -199,12 +229,22 @@ export function architectureDraftFromConfig(config: ProjectConfigV2): Architectu
   const queue = config.resources.find((resource) => resource.kind === 'queue');
   const fileStorage = config.resources.find((resource) => resource.kind === 'object-storage');
   const resourceUsers = (resource: typeof database) => resource ? { ownerComponentId: resource.ownerComponentId, consumerComponentIds: resource.consumerComponentIds } : undefined;
+  const uiServices = new Map<string, string[]>();
+  const serviceDependencies = new Map<string, string[]>();
+  for (const connection of config.connections) {
+    const source = config.components.find((component) => component.id === connection.from);
+    const target = config.components.find((component) => component.id === connection.to);
+    if (source?.kind === 'ui' && target?.kind === 'service')
+      uiServices.set(source.id, [...(uiServices.get(source.id) ?? []), target.id]);
+    if (source?.kind === 'service' && target?.kind === 'service')
+      serviceDependencies.set(source.id, [...(serviceDependencies.get(source.id) ?? []), target.id]);
+  }
   return ArchitectureDraftSchema.parse({
     projectName: config.name, productSummary: config.product.summary,
     uis: config.components.filter((component) => component.kind === 'ui').map((component) => ({ id: component.id, name: component.name, role: component.role, runtime: component.runtime, deployment: component.deployment, description: component.description })),
     services: config.components.filter((component) => component.kind === 'service').map((component) => ({ id: component.id, name: component.name, runtime: component.runtime, ...(component.hostUiId ? { hostUiId: component.hostUiId } : {}), ...(component.deployment ? { deployment: component.deployment } : {}), description: component.description })),
-    uiServices: config.connections.filter((connection) => config.components.some((component) => component.id === connection.from && component.kind === 'ui') && config.components.some((component) => component.id === connection.to && component.kind === 'service')).map((connection) => ({ uiId: connection.from, serviceIds: [connection.to] })),
-    serviceDependencies: config.connections.filter((connection) => config.components.some((component) => component.id === connection.from && component.kind === 'service') && config.components.some((component) => component.id === connection.to && component.kind === 'service')).map((connection) => ({ serviceId: connection.from, dependencyIds: [connection.to] })),
+    uiServices: [...uiServices].map(([uiId, serviceIds]) => ({ uiId, serviceIds })),
+    serviceDependencies: [...serviceDependencies].map(([serviceId, dependencyIds]) => ({ serviceId, dependencyIds })),
     ...(database ? { database: { type: database.technology.includes('MongoDB') ? 'mongodb' : database.technology.includes('D1') ? 'cloudflare-d1' : 'postgresql', provider: database.technology.includes('Neon') ? 'neon' : database.technology.includes('MongoDB') ? 'mongodb-atlas' : database.technology.includes('D1') ? 'cloudflare' : 'supabase', dataAccess: database.technology.includes('Prisma') ? 'prisma' : database.technology.includes('native driver') ? 'native-driver' : 'drizzle', users: resourceUsers(database)! } } : {}),
     ...(cache ? { cache: { provider: cache.technology.includes('Cloudflare') ? 'cloudflare' : 'upstash', users: resourceUsers(cache)! } } : {}),
     ...(rateLimit ? { rateLimit: { provider: rateLimit.technology.includes('Cloudflare') ? 'cloudflare' : 'upstash', users: resourceUsers(rateLimit)! } } : {}),
