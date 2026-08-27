@@ -14,6 +14,8 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Ask deterministic product and architecture questions with conditional follow-ups.
 - [x] Replace bundled architecture starters with an independent frontend choice: vanilla TypeScript with Create Vite, Next.js, or no frontend.
 - [x] Add an independent backend choice: Next.js server features, Express, Cloudflare Workers, or no backend. Express and Cloudflare Workers are alternatives within the same question.
+- [x] Select Server-Sent Events and WebSockets independently, including both together for Express.
+- [x] Explain the deployment fit of frontend and backend choices, then capture compatible Vercel, Render, Cloudflare, VPS, or local-only targets per independently deployed component.
 - [x] Select a database and provider, then filter ORM and direct data-access choices by database compatibility.
 - [x] Select no file storage, Supabase Storage, or Cloudflare R2.
 - [x] Select application caching, distributed rate limiting, and reliable background delivery or queues as independent infrastructure needs.
@@ -69,12 +71,15 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 - [ ] Build a local or hosted browser interface over the same `core` package.
 - [ ] Add browser-local and server-backed session adapters while keeping schemas compatible.
-- [ ] Capture deployment targets, runtime constraints, lifecycle commands, and optional container artifacts.
+- [ ] Capture detailed runtime constraints, lifecycle commands, and optional container artifacts.
 - [ ] Preview and explicitly export requested scaffolding or automation files without executing them.
 - [ ] Add authentication only when remote storage or shared workspaces require it.
 
 ## Potential
 
+- [ ] Add Google Cloud Firestore as a selectable document database and Google Cloud as a database provider.
+- [ ] Add AWS DynamoDB as a selectable key-value/document database.
+- [ ] Add Cloudflare Workers KV as a selectable key-value database for Workers projects.
 - [ ] Bundle a concise, offline system-design knowledge base that helps coding agents make architecture decisions, with compact structured guidance suitable for less capable models.
 - [ ] Optional Git-based session and template synchronization.
 - [ ] AI-assisted architecture design, interview, and critique modes with explicit acceptance of changes.

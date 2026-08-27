@@ -33,7 +33,7 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
   const selectedCapabilities = [
     ...(answers.database === 'none' ? [] : (['database'] as const)),
     ...(answers.authService === 'none' ? [] : (['authentication'] as const)),
-    ...(answers.realtimeMode === 'none' ? [] : (['real-time'] as const)),
+    ...(answers.realtimeModes.length === 0 ? [] : (['real-time'] as const)),
     ...(answers.fileStorage === 'none' ? [] : (['file-storage'] as const)),
     ...answers.infrastructure,
   ];
@@ -162,20 +162,22 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     if (webApp) addCapability(webApp.id, 'authentication');
   }
 
-  if (answers.realtimeMode !== 'none') {
+  if (answers.realtimeModes.length > 0) {
     addCapability(serverOwner.id, 'real-time');
     if (webApp) addCapability(webApp.id, 'real-time');
     if (webApp && webApp.id !== serverOwner.id) {
-      connections.push({
-        id: 'real-time-events',
-        from: webApp.id,
-        to: serverOwner.id,
-        protocol: answers.realtimeMode === 'sse' ? 'sse' : 'websocket',
-        purpose:
-          answers.realtimeMode === 'sse'
-            ? 'Receive server-sent application events'
-            : 'Exchange bidirectional application events',
-      });
+      for (const mode of answers.realtimeModes) {
+        connections.push({
+          id: `real-time-${mode}`,
+          from: webApp.id,
+          to: serverOwner.id,
+          protocol: mode,
+          purpose:
+            mode === 'sse'
+              ? 'Receive server-sent application events'
+              : 'Exchange bidirectional application events',
+        });
+      }
     }
     contracts.push({
       id: 'real-time-event-contract',
@@ -324,7 +326,14 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
   const userDecisions: Array<[string, string | string[]]> = [
     ['frontend', answers.frontend],
     ['backend', answers.backend],
-    ['realtime.mode', answers.realtimeMode],
+    ['deployment.frontend', answers.frontendDeployment ?? 'none'],
+    [
+      'deployment.backend',
+      answers.backend === 'nextjs'
+        ? (answers.frontendDeployment ?? 'none')
+        : (answers.backendDeployment ?? 'none'),
+    ],
+    ['realtime.modes', answers.realtimeModes],
     ['database.type', answers.database],
     ['file-storage.provider', answers.fileStorage],
     ['infrastructure', answers.infrastructure],
@@ -369,6 +378,14 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     product: { summary: answers.productSummary.trim(), goals: [], constraints: [] },
     frontend: answers.frontend,
     backend: answers.backend,
+    deployment: {
+      ...(answers.frontend !== 'none' && answers.frontendDeployment
+        ? { frontend: answers.frontendDeployment }
+        : {}),
+      ...(answers.backend !== 'none' && answers.backend !== 'nextjs' && answers.backendDeployment
+        ? { backend: answers.backendDeployment }
+        : {}),
+    },
     capabilities,
     tools,
     components,

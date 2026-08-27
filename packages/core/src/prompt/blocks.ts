@@ -2,6 +2,7 @@ import {
   agentModeLabels,
   backendLabels,
   capabilityLabels,
+  deploymentTargetLabels,
   frontendLabels,
 } from '../catalog/index.js';
 import type { ProjectConfigV1 } from '../schema/project-config.js';
@@ -33,6 +34,18 @@ function escapeData(value: string): string {
 function bullets(values: readonly string[]): string {
   return values.length === 0 ? '- None.' : values.map((value) => `- ${value}`).join('\n');
 }
+
+const deploymentGuidance = {
+  vercel:
+    'Prepare the application for Vercel, including its build, runtime, environment-variable, and routing conventions.',
+  render:
+    'Prepare a Render-compatible build and start contract, health checks where applicable, and documented environment variables.',
+  'local-only':
+    'Keep operation local and document reproducible development commands; do not add hosted deployment configuration.',
+  vps: 'Define a production build and process contract for a self-managed VPS, including environment variables, health checks, and restart expectations.',
+  cloudflare:
+    'Use Cloudflare-compatible runtimes and deployment configuration; do not rely on unsupported Node.js runtime behavior.',
+} as const;
 
 export const defaultPromptBlocks: readonly PromptBlock[] = [
   {
@@ -70,6 +83,8 @@ Summary: ${escapeData(config.product.summary)}
 
 - Frontend: **${frontendLabels[config.frontend]}**
 - Backend: **${backendLabels[config.backend]}**
+- Frontend deployment: **${config.deployment.frontend ? deploymentTargetLabels[config.deployment.frontend] : 'Not applicable'}**
+- Backend deployment: **${config.backend === 'nextjs' && config.deployment.frontend ? `${deploymentTargetLabels[config.deployment.frontend]} (shared Next.js app)` : config.deployment.backend ? deploymentTargetLabels[config.deployment.backend] : 'Not applicable'}**
 - Language: **TypeScript**
 - Capabilities: ${
       config.capabilities.length === 0
@@ -89,6 +104,25 @@ ${bullets(
     (component) =>
       `**${component.name}** (\`${component.id}\`, ${component.technology}): ${component.responsibilities.join('; ')}.`,
   ),
+)}`,
+  },
+  {
+    id: 'architecture.deployment',
+    order: 450,
+    applies: always,
+    render: (config) => `### Deployment constraints
+
+${bullets(
+  [
+    config.deployment.frontend
+      ? `Frontend — ${deploymentTargetLabels[config.deployment.frontend]}: ${deploymentGuidance[config.deployment.frontend]}`
+      : undefined,
+    config.backend === 'nextjs' && config.deployment.frontend
+      ? `Integrated Next.js backend — ${deploymentTargetLabels[config.deployment.frontend]}: share the frontend deployment and its runtime constraints.`
+      : config.deployment.backend
+        ? `Backend — ${deploymentTargetLabels[config.deployment.backend]}: ${deploymentGuidance[config.deployment.backend]}`
+        : undefined,
+  ].filter((value): value is string => value !== undefined),
 )}`,
   },
   {
@@ -203,12 +237,20 @@ ${bullets(
     order: 1130,
     applies: hasCapability('real-time'),
     render: (config) => {
-      const protocol = config.connections.find((connection) =>
-        ['sse', 'websocket'].includes(connection.protocol),
-      )?.protocol;
+      const protocols = new Set(
+        config.connections
+          .filter((connection) => ['sse', 'websocket'].includes(connection.protocol))
+          .map((connection) => connection.protocol),
+      );
+      const transportRequirements = [
+        ...(protocols.has('sse')
+          ? ['- Use Server-Sent Events for one-way server-to-client delivery.']
+          : []),
+        ...(protocols.has('websocket') ? ['- Use WebSocket for bidirectional delivery.'] : []),
+      ].join('\n');
       return `### Real-time communication
 
-- Use ${protocol === 'sse' ? 'Server-Sent Events for one-way server-to-client delivery' : 'WebSocket for bidirectional delivery'}.
+${transportRequirements}
 - Version event names and payloads independently from the transport.
 - Define reconnection, ordering, authorization, heartbeat, and backpressure behavior.`;
     },

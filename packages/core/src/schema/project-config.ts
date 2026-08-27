@@ -6,6 +6,15 @@ export type Frontend = z.infer<typeof FrontendSchema>;
 export const BackendSchema = z.enum(['nextjs', 'express', 'cloudflare-workers', 'none']);
 export type Backend = z.infer<typeof BackendSchema>;
 
+export const DeploymentTargetSchema = z.enum([
+  'vercel',
+  'render',
+  'local-only',
+  'vps',
+  'cloudflare',
+]);
+export type DeploymentTarget = z.infer<typeof DeploymentTargetSchema>;
+
 export const CapabilitySchema = z.enum([
   'database',
   'authentication',
@@ -98,12 +107,16 @@ export const ProjectConfigV1Schema = z
     name: z.string().min(1).max(100),
     language: z.literal('typescript'),
     product: z.object({
-      summary: z.string().min(1).max(2_000),
+      summary: z.string().max(2_000),
       goals: z.array(z.string()),
       constraints: z.array(z.string()),
     }),
     frontend: FrontendSchema,
     backend: BackendSchema,
+    deployment: z.object({
+      frontend: DeploymentTargetSchema.optional(),
+      backend: DeploymentTargetSchema.optional(),
+    }),
     capabilities: z.array(CapabilitySchema),
     tools: z.array(ToolIdSchema).refine((items) => new Set(items).size === items.length),
     components: z.array(ComponentSchema).min(1),
@@ -117,6 +130,56 @@ export const ProjectConfigV1Schema = z
     }),
   })
   .superRefine((config, context) => {
+    if (config.frontend !== 'none' && !config.deployment.frontend) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Frontend deployment target is required.',
+        path: ['deployment', 'frontend'],
+      });
+    }
+    if (config.frontend === 'none' && config.deployment.frontend) {
+      context.addIssue({
+        code: 'custom',
+        message: 'A project without a frontend cannot have a frontend deployment target.',
+        path: ['deployment', 'frontend'],
+      });
+    }
+    if (config.backend !== 'none' && config.backend !== 'nextjs' && !config.deployment.backend) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Backend deployment target is required.',
+        path: ['deployment', 'backend'],
+      });
+    }
+    if ((config.backend === 'none' || config.backend === 'nextjs') && config.deployment.backend) {
+      context.addIssue({
+        code: 'custom',
+        message: 'This backend does not use an independent deployment target.',
+        path: ['deployment', 'backend'],
+      });
+    }
+    if (
+      config.backend === 'express' &&
+      config.deployment.backend &&
+      !['render', 'local-only', 'vps'].includes(config.deployment.backend)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Express deployment target is incompatible.',
+        path: ['deployment', 'backend'],
+      });
+    }
+    if (
+      config.backend === 'cloudflare-workers' &&
+      config.deployment.backend &&
+      !['cloudflare', 'local-only'].includes(config.deployment.backend)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Cloudflare Workers deployment target is incompatible.',
+        path: ['deployment', 'backend'],
+      });
+    }
     const nodeIds = new Set<string>();
     for (const component of config.components) {
       if (nodeIds.has(component.id)) {

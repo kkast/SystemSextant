@@ -16,7 +16,7 @@ node packages/cli/dist/bin/systemsextant.js
 
 For convenience, use `pnpm dev` to build and launch the CLI in one command.
 
-The bare interface lets you start a new session or reopen a saved one. A new session asks about the product, frontend, backend, data and infrastructure needs, authentication, and how the receiving coding agent should work. Before saving, you can review answers and both generated artifacts.
+The bare interface lets you start a new session or reopen a saved one. A new session asks about the product, frontend, backend, compatible deployment targets, data and infrastructure needs, authentication, and how the receiving coding agent should work. Before saving, you can review answers and both generated artifacts.
 
 Caching, distributed rate limiting, and reliable background delivery are separate choices. They use Upstash Redis, Ratelimit, and QStash, or Cloudflare-native alternatives when Cloudflare Workers is the selected backend.
 

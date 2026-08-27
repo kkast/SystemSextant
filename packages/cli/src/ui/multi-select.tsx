@@ -5,13 +5,21 @@ import type { QuestionOption } from '@systemsextant/core';
 interface MultiSelectProps {
   readonly options: readonly QuestionOption[];
   readonly initialValues: readonly string[];
+  readonly minimumSelections?: number;
   readonly onSubmit: (values: string[]) => void;
   readonly onCancel: () => void;
 }
 
-export function MultiSelect({ options, initialValues, onSubmit, onCancel }: MultiSelectProps) {
+export function MultiSelect({
+  options,
+  initialValues,
+  minimumSelections = 0,
+  onSubmit,
+  onCancel,
+}: MultiSelectProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selected, setSelected] = useState(() => new Set(initialValues));
+  const [error, setError] = useState<string>();
 
   useInput((input, key) => {
     if (key.upArrow || input === 'k') {
@@ -25,10 +33,20 @@ export function MultiSelect({ options, initialValues, onSubmit, onCancel }: Mult
         const next = new Set(current);
         if (next.has(option.value)) next.delete(option.value);
         else next.add(option.value);
+        setError(undefined);
         return next;
       });
     } else if (key.return) {
-      onSubmit(options.filter(({ value }) => selected.has(value)).map(({ value }) => value));
+      const values = options.filter(({ value }) => selected.has(value)).map(({ value }) => value);
+      if (values.length < minimumSelections) {
+        setError(
+          minimumSelections === 1
+            ? 'Choose at least one option.'
+            : `Choose at least ${minimumSelections} options.`,
+        );
+        return;
+      }
+      onSubmit(values);
     } else if (key.escape) {
       onCancel();
     }
@@ -47,6 +65,7 @@ export function MultiSelect({ options, initialValues, onSubmit, onCancel }: Mult
       <Box marginTop={1}>
         <Text dimColor>↑/↓ select · Space toggle · Enter confirm · Esc back</Text>
       </Box>
+      {error ? <Text color="red">{error}</Text> : null}
     </Box>
   );
 }

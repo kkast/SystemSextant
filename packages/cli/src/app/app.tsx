@@ -170,18 +170,19 @@ export function App({
   if (screen === 'review') {
     const questions = getQuestionSequence(answers);
     const options: MenuOption<string>[] = [
-      { value: 'generate', label: 'Generate and review artifacts' },
       ...questions.map((question) => ({
         value: `edit:${question.id}`,
-        label: `Edit ${question.label}`,
+        label: question.label,
         description: formatAnswer(question, answers),
       })),
+      { value: 'generate', label: 'Generate and review artifacts' },
       { value: 'cancel', label: 'Cancel session' },
     ];
     return (
-      <Frame title="Review answers" error={error}>
+      <Frame title="Review answers" subtitle="Select an answer to edit it." error={error}>
         <Menu
           options={options}
+          showDescriptions
           onSelect={(value) => {
             if (value === 'generate') preparePreview();
             else if (value === 'cancel') goHome();

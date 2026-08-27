@@ -8,6 +8,7 @@ import {
   getQuestionSequence,
   normalizeProjectConfig,
   ProjectConfigV1Schema,
+  QuestionnaireAnswersSchema,
   renderSupportedStackCatalog,
   type QuestionnaireAnswers,
   type PromptBlock,
@@ -20,7 +21,9 @@ const baseAnswers: QuestionnaireAnswers = {
   productSummary: 'A platform that helps teams coordinate technical projects.',
   frontend: 'nextjs',
   backend: 'express',
-  realtimeMode: 'websocket',
+  frontendDeployment: 'vercel',
+  backendDeployment: 'render',
+  realtimeModes: ['sse', 'websocket'],
   database: 'postgresql',
   databaseProvider: 'supabase',
   dataAccess: 'drizzle',
@@ -36,7 +39,9 @@ const infrastructureAnswers: QuestionnaireAnswers = {
   productSummary: 'A platform that verifies managed infrastructure selections.',
   frontend: 'nextjs',
   backend: 'cloudflare-workers',
-  realtimeMode: 'none',
+  frontendDeployment: 'cloudflare',
+  backendDeployment: 'cloudflare',
+  realtimeModes: [],
   database: 'none',
   fileStorage: 'none',
   infrastructure: ['caching', 'rate-limiting', 'background-jobs'],
@@ -49,6 +54,13 @@ const infrastructureAnswers: QuestionnaireAnswers = {
 };
 
 describe('questionnaire', () => {
+  it('accepts an empty optional product description', () => {
+    expect(
+      QuestionnaireAnswersSchema.parse({ ...baseAnswers, productSummary: '   ' }).productSummary,
+    ).toBe('');
+    expect(normalizeProjectConfig({ ...baseAnswers, productSummary: '   ' }).product.summary).toBe('');
+  });
+
   it('lists all current stack tools in the supported stack catalog', () => {
     const catalog = renderSupportedStackCatalog();
     expect(catalog).toContain('Upstash Redis');
@@ -72,6 +84,45 @@ describe('questionnaire', () => {
     ).not.toMatchObject({
       options: expect.arrayContaining([expect.objectContaining({ value: 'nextjs' })]),
     });
+  });
+
+  it('asks only compatible deployment questions and explains their fit', () => {
+    const expressQuestions = getQuestionSequence({ frontend: 'nextjs', backend: 'express' });
+    const backendDeployment = expressQuestions.find(({ id }) => id === 'backendDeployment');
+    expect(backendDeployment).toMatchObject({
+      options: [
+        expect.objectContaining({
+          value: 'render',
+          description: expect.stringContaining('Express'),
+        }),
+        expect.objectContaining({ value: 'vps' }),
+        expect.objectContaining({ value: 'local-only' }),
+      ],
+    });
+    const workerDeployment = getQuestionSequence({
+      frontend: 'none',
+      backend: 'cloudflare-workers',
+    }).find(({ id }) => id === 'backendDeployment');
+    expect(workerDeployment).toMatchObject({
+      options: [
+        expect.objectContaining({ value: 'cloudflare' }),
+        expect.objectContaining({ value: 'local-only' }),
+      ],
+    });
+  });
+
+  it('keeps Vercel available for vanilla Vite static sites', () => {
+    const question = getQuestionSequence({ frontend: 'vite-vanilla', backend: 'none' }).find(
+      ({ id }) => id === 'frontendDeployment',
+    );
+    expect(question?.kind === 'single' ? question.options : []).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          value: 'vercel',
+          description: expect.stringContaining('Vite production build'),
+        }),
+      ]),
+    );
   });
 
   it('activates only relevant follow-up questions', () => {
@@ -100,6 +151,36 @@ describe('questionnaire', () => {
     expect(databaseOptions('express')).not.toContain('cloudflare-d1');
     expect(databaseOptions('cloudflare-workers')).toContain('cloudflare-d1');
   });
+
+  it('allows Express projects to select SSE and WebSockets together', () => {
+    const question = getQuestionSequence({ frontend: 'nextjs', backend: 'express' }).find(
+      ({ id }) => id === 'realtimeModes',
+    );
+
+    expect(question).toMatchObject({
+      kind: 'multi',
+      options: [
+        expect.objectContaining({ value: 'sse' }),
+        expect.objectContaining({ value: 'websocket' }),
+      ],
+    });
+  });
+
+  it('allows multiple managed infrastructure needs and asks for each provider', () => {
+    const questions = getQuestionSequence({
+      frontend: 'nextjs',
+      backend: 'express',
+      infrastructure: ['caching', 'rate-limiting', 'background-jobs'],
+    });
+
+    expect(questions.find(({ id }) => id === 'infrastructure')).toMatchObject({
+      kind: 'multi',
+      help: expect.stringContaining('Space'),
+    });
+    expect(questions.map(({ id }) => id)).toEqual(
+      expect.arrayContaining(['cacheProvider', 'rateLimitProvider', 'queueProvider']),
+    );
+  });
 });
 
 describe('configuration normalization', () => {
@@ -107,10 +188,17 @@ describe('configuration normalization', () => {
     const config = normalizeProjectConfig(baseAnswers);
 
     expect(config.components.map(({ id }) => id)).toEqual(['web-app', 'api-service']);
+    expect(
+      config.connections
+        .filter(({ protocol }) => protocol === 'sse' || protocol === 'websocket')
+        .map(({ protocol }) => protocol),
+    ).toEqual(['sse', 'websocket']);
+    expect(config.deployment).toEqual({ frontend: 'vercel', backend: 'render' });
     expect(config.resources.map(({ id }) => id)).toEqual(['primary-database', 'object-storage']);
     expect(config.connections.map(({ protocol }) => protocol)).toEqual([
       'http',
       'database',
+      'sse',
       'websocket',
       'object-storage',
     ]);
@@ -134,6 +222,15 @@ describe('configuration normalization', () => {
     };
 
     expect(() => ProjectConfigV1Schema.parse(invalid)).toThrow(/Dangling connection/);
+  });
+
+  it('rejects an incompatible deployment target', () => {
+    expect(() =>
+      ProjectConfigV1Schema.parse({
+        ...normalizeProjectConfig(baseAnswers),
+        deployment: { frontend: 'vercel', backend: 'cloudflare' },
+      }),
+    ).toThrow(/Express deployment target is incompatible/);
   });
 
   it('maps selected challenges to purpose-built Upstash products', () => {
@@ -229,6 +326,7 @@ describe('artifact generation', () => {
     expect(compiled.content).toContain('Supabase Storage');
     expect(compiled.content).toContain('authentication.service**: supabase-auth');
     expect(compiled.content).toContain('authentication.login-methods**: github, magic-link');
+    expect(compiled.content).toContain('Backend — Render');
   });
 
   it('does not change an existing prompt when an unrelated tool block is registered', () => {

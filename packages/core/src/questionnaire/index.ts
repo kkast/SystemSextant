@@ -1,17 +1,35 @@
 import { z } from 'zod';
-import { agentModeLabels, agentModes, backendLabels, frontendLabels } from '../catalog/index.js';
-import { AgentModeSchema, BackendSchema, FrontendSchema } from '../schema/project-config.js';
+import {
+  agentModeLabels,
+  agentModes,
+  backendLabels,
+  deploymentTargetLabels,
+  frontendLabels,
+} from '../catalog/index.js';
+import {
+  AgentModeSchema,
+  BackendSchema,
+  DeploymentTargetSchema,
+  type Frontend,
+  FrontendSchema,
+} from '../schema/project-config.js';
 
 const InfrastructureSchema = z.enum(['caching', 'rate-limiting', 'background-jobs']);
 const LoginMethodSchema = z.enum(['github', 'email-password', 'magic-link', 'wallet']);
+const RealtimeModeSchema = z.enum(['sse', 'websocket']);
 
 export const QuestionnaireAnswersSchema = z
   .object({
     projectName: z.string().trim().min(1, 'Project name is required.').max(100),
-    productSummary: z.string().trim().min(10).max(2_000),
+    productSummary: z.string().trim().max(2_000),
     frontend: FrontendSchema,
     backend: BackendSchema,
-    realtimeMode: z.enum(['none', 'sse', 'websocket']).default('none'),
+    frontendDeployment: DeploymentTargetSchema.optional(),
+    backendDeployment: DeploymentTargetSchema.optional(),
+    realtimeModes: z
+      .array(RealtimeModeSchema)
+      .refine((items) => new Set(items).size === items.length)
+      .default([]),
     database: z.enum(['none', 'postgresql', 'mongodb', 'cloudflare-d1']),
     databaseProvider: z.enum(['supabase', 'neon', 'mongodb-atlas', 'cloudflare']).optional(),
     dataAccess: z.enum(['prisma', 'drizzle', 'native-driver']).optional(),
@@ -45,11 +63,47 @@ export const QuestionnaireAnswersSchema = z
         path: ['backend'],
       });
     }
-    if (answers.realtimeMode === 'websocket' && answers.backend !== 'express') {
+    if (answers.frontend !== 'none' && !answers.frontendDeployment) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Choose where the frontend will be deployed.',
+        path: ['frontendDeployment'],
+      });
+    }
+    if (answers.backend !== 'none' && answers.backend !== 'nextjs' && !answers.backendDeployment) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Choose where the backend will be deployed.',
+        path: ['backendDeployment'],
+      });
+    }
+    if (
+      answers.backend === 'express' &&
+      answers.backendDeployment &&
+      !['render', 'local-only', 'vps'].includes(answers.backendDeployment)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Express must use Render, a VPS, or local-only deployment.',
+        path: ['backendDeployment'],
+      });
+    }
+    if (
+      answers.backend === 'cloudflare-workers' &&
+      answers.backendDeployment &&
+      !['cloudflare', 'local-only'].includes(answers.backendDeployment)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Cloudflare Workers must use Cloudflare or local-only deployment.',
+        path: ['backendDeployment'],
+      });
+    }
+    if (answers.realtimeModes.includes('websocket') && answers.backend !== 'express') {
       context.addIssue({
         code: 'custom',
         message: 'This MVP uses an Express server for WebSocket connections.',
-        path: ['realtimeMode'],
+        path: ['realtimeModes'],
       });
     }
     if (answers.database === 'cloudflare-d1' && answers.backend !== 'cloudflare-workers') {
@@ -160,7 +214,9 @@ export type QuestionId =
   | 'productSummary'
   | 'frontend'
   | 'backend'
-  | 'realtimeMode'
+  | 'frontendDeployment'
+  | 'backendDeployment'
+  | 'realtimeModes'
   | 'database'
   | 'databaseProvider'
   | 'dataAccess'
@@ -205,12 +261,14 @@ const frontendQuestion: SingleSelectQuestion = {
     {
       value: 'nextjs',
       label: frontendLabels.nextjs,
-      description: 'React UI with routing, rendering, and an integrated server option.',
+      description:
+        'React UI with routing and rendering; best on Vercel, with Cloudflare, Render, or a VPS as alternatives.',
     },
     {
       value: 'vite-vanilla',
       label: frontendLabels['vite-vanilla'],
-      description: 'A lightweight browser UI without a frontend framework.',
+      description:
+        'A lightweight static browser UI; a good fit for Vercel, Cloudflare, Render, or a VPS.',
     },
     {
       value: 'none',
@@ -226,20 +284,21 @@ function backendQuestion(frontend: DraftQuestionnaireAnswers['frontend']): Singl
     options.push({
       value: 'nextjs',
       label: backendLabels.nextjs,
-      description: 'Use route handlers and Server Actions in the same Next.js application.',
+      description:
+        'Integrated app hosting; best on Vercel, with Cloudflare, Render, or a VPS when their runtime tradeoffs fit.',
     });
   options.push(
     {
       value: 'express',
       label: backendLabels.express,
       description:
-        'Use for WebSockets, long-lived server processes, custom middleware, or independent APIs.',
+        'Best for Render or a VPS when you need WebSockets, long-lived processes, custom middleware, or an independent API.',
     },
     {
       value: 'cloudflare-workers',
       label: backendLabels['cloudflare-workers'],
       description:
-        'Use for globally distributed request handlers; background work must use queues, not long-running processes.',
+        'Best for Cloudflare edge deployment; background work must use queues, not long-running processes.',
     },
     {
       value: 'none',
@@ -250,9 +309,117 @@ function backendQuestion(frontend: DraftQuestionnaireAnswers['frontend']): Singl
   return { id: 'backend', kind: 'single', label: 'Backend', options };
 }
 
-function realtimeQuestion(backend: QuestionnaireAnswers['backend']): SingleSelectQuestion {
+function frontendDeploymentQuestion(frontend: Exclude<Frontend, 'none'>): SingleSelectQuestion {
+  const options: QuestionOption[] =
+    frontend === 'nextjs'
+      ? [
+          {
+            value: 'vercel',
+            label: deploymentTargetLabels.vercel,
+            description: 'Best default: native Next.js hosting with minimal deployment setup.',
+          },
+          {
+            value: 'cloudflare',
+            label: deploymentTargetLabels.cloudflare,
+            description:
+              'Use when edge deployment is needed; configure the Cloudflare Next.js runtime adapter.',
+          },
+          {
+            value: 'render',
+            label: deploymentTargetLabels.render,
+            description: 'Managed Node hosting for a standard Next.js server.',
+          },
+          {
+            value: 'vps',
+            label: deploymentTargetLabels.vps,
+            description: 'Full control of the Next.js server, with operations managed by you.',
+          },
+          {
+            value: 'local-only',
+            label: deploymentTargetLabels['local-only'],
+            description: 'Run the Next.js application only on the local machine.',
+          },
+        ]
+      : [
+          {
+            value: 'vercel',
+            label: deploymentTargetLabels.vercel,
+            description:
+              'Supported static hosting for the Vite production build, with preview deployments.',
+          },
+          {
+            value: 'cloudflare',
+            label: deploymentTargetLabels.cloudflare,
+            description: 'Global static-asset hosting for the Vite production build.',
+          },
+          {
+            value: 'render',
+            label: deploymentTargetLabels.render,
+            description: 'Managed static-site hosting for the Vite production build.',
+          },
+          {
+            value: 'vps',
+            label: deploymentTargetLabels.vps,
+            description: 'Serve the generated static files from infrastructure you manage.',
+          },
+          {
+            value: 'local-only',
+            label: deploymentTargetLabels['local-only'],
+            description: 'Build and run the frontend only on the local machine.',
+          },
+        ];
+  return {
+    id: 'frontendDeployment',
+    kind: 'single',
+    label: 'Frontend deployment',
+    options,
+  };
+}
+
+function backendDeploymentQuestion(
+  backend: 'express' | 'cloudflare-workers',
+): SingleSelectQuestion {
+  return {
+    id: 'backendDeployment',
+    kind: 'single',
+    label: 'Backend deployment',
+    options:
+      backend === 'express'
+        ? [
+            {
+              value: 'render',
+              label: deploymentTargetLabels.render,
+              description:
+                'Managed Node hosting and the easiest free option for an Express server.',
+            },
+            {
+              value: 'vps',
+              label: deploymentTargetLabels.vps,
+              description: 'Full process and networking control, with operations managed by you.',
+            },
+            {
+              value: 'local-only',
+              label: deploymentTargetLabels['local-only'],
+              description: 'Run the Express server only on the local machine.',
+            },
+          ]
+        : [
+            {
+              value: 'cloudflare',
+              label: deploymentTargetLabels.cloudflare,
+              description: 'The production platform for Cloudflare Workers.',
+            },
+            {
+              value: 'local-only',
+              label: deploymentTargetLabels['local-only'],
+              description: 'Develop with the Workers runtime locally without deploying it.',
+            },
+          ],
+  };
+}
+
+function realtimeQuestion(backend: QuestionnaireAnswers['backend']): MultiSelectQuestion {
   const options: QuestionOption[] = [
-    { value: 'none', label: 'Not needed' },
     {
       value: 'sse',
       label: 'Server-Sent Events',
@@ -265,7 +432,13 @@ function realtimeQuestion(backend: QuestionnaireAnswers['backend']): SingleSelec
       label: 'WebSockets',
       description: 'Bidirectional persistent connections handled by the long-lived Express server.',
     });
-  return { id: 'realtimeMode', kind: 'single', label: 'Real-time communication', options };
+  return {
+    id: 'realtimeModes',
+    kind: 'multi',
+    label: 'Real-time communication',
+    help: 'Select any transports the product needs, or continue without selecting one.',
+    options,
+  };
 }
 
 function databaseQuestion(backend: DraftQuestionnaireAnswers['backend']): SingleSelectQuestion {
@@ -399,7 +572,7 @@ const infrastructureQuestion: MultiSelectQuestion = {
   id: 'infrastructure',
   kind: 'multi',
   label: 'Managed infrastructure needs',
-  help: 'For now these map to Upstash products; provider choice can be added later.',
+  help: 'Choose any that apply. Use Space to toggle options, then Enter to continue.',
   options: [
     {
       value: 'caching',
@@ -522,12 +695,16 @@ export function getQuestionSequence(answers: DraftQuestionnaireAnswers): Questio
     {
       id: 'productSummary',
       kind: 'text',
-      label: 'What are you building?',
-      placeholder: 'Describe the product, users, and primary outcome',
+      label: 'What are you building? (optional)',
+      placeholder: 'Describe the product, users, and primary outcome (optional)',
     },
     frontendQuestion,
   ];
   if (answers.frontend) questions.push(backendQuestion(answers.frontend));
+  if (answers.frontend && answers.frontend !== 'none')
+    questions.push(frontendDeploymentQuestion(answers.frontend));
+  if (answers.backend === 'express' || answers.backend === 'cloudflare-workers')
+    questions.push(backendDeploymentQuestion(answers.backend));
   if (answers.backend && answers.backend !== 'none')
     questions.push(realtimeQuestion(answers.backend));
   questions.push(databaseQuestion(answers.backend));

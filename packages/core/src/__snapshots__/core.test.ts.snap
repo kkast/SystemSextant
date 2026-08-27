@@ -20,9 +20,16 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - Frontend: **Next.js**
 - Backend: **Express server**
+- Frontend deployment: **Vercel**
+- Backend deployment: **Render**
 - Language: **TypeScript**
 - Capabilities: Database, Authentication, Real-time communication, File storage
 - Agent mode: **Plan then build**
+
+### Deployment constraints
+
+- Frontend — Vercel: Prepare the application for Vercel, including its build, runtime, environment-variable, and routing conventions.
+- Backend — Render: Prepare a Render-compatible build and start contract, health checks where applicable, and documented environment variables.
 
 ### Components
 
@@ -38,6 +45,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - \`web-app\` → \`api-service\` via **http**: Application API requests.
 - \`api-service\` → \`primary-database\` via **database**: Read and write persistent application data.
+- \`web-app\` → \`api-service\` via **sse**: Receive server-sent application events.
 - \`web-app\` → \`api-service\` via **websocket**: Exchange bidirectional application events.
 - \`api-service\` → \`object-storage\` via **object-storage**: Store and retrieve files.
 
@@ -52,7 +60,9 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - **frontend**: nextjs.
 - **backend**: express.
-- **realtime.mode**: websocket.
+- **deployment.frontend**: vercel.
+- **deployment.backend**: render.
+- **realtime.modes**: sse, websocket.
 - **database.type**: postgresql.
 - **file-storage.provider**: supabase-storage.
 - **infrastructure**: none.
@@ -98,6 +108,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 ### Real-time communication
 
+- Use Server-Sent Events for one-way server-to-client delivery.
 - Use WebSocket for bidirectional delivery.
 - Version event names and payloads independently from the transport.
 - Define reconnection, ordering, authorization, heartbeat, and backpressure behavior.
@@ -168,7 +179,12 @@ connections:
     purpose: Read and write persistent application data
     to: primary-database
   - from: web-app
-    id: real-time-events
+    id: real-time-sse
+    protocol: sse
+    purpose: Receive server-sent application events
+    to: api-service
+  - from: web-app
+    id: real-time-websocket
     protocol: websocket
     purpose: Exchange bidirectional application events
     to: api-service
@@ -213,10 +229,20 @@ decisions:
     source: user
     status: confirmed
     value: express
-  - key: realtime.mode
+  - key: deployment.frontend
     source: user
     status: confirmed
-    value: websocket
+    value: vercel
+  - key: deployment.backend
+    source: user
+    status: confirmed
+    value: render
+  - key: realtime.modes
+    source: user
+    status: confirmed
+    value:
+      - sse
+      - websocket
   - key: database.type
     source: user
     status: confirmed
@@ -268,6 +294,9 @@ decisions:
     source: default
     status: confirmed
     value: blocking-only
+deployment:
+  backend: render
+  frontend: vercel
 frontend: nextjs
 language: typescript
 name: Example platform
@@ -313,9 +342,16 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - Frontend: **Next.js**
 - Backend: **Express server**
+- Frontend deployment: **Vercel**
+- Backend deployment: **Render**
 - Language: **TypeScript**
 - Capabilities: Database, Authentication, Real-time communication, File storage
 - Agent mode: **Direct build**
+
+### Deployment constraints
+
+- Frontend — Vercel: Prepare the application for Vercel, including its build, runtime, environment-variable, and routing conventions.
+- Backend — Render: Prepare a Render-compatible build and start contract, health checks where applicable, and documented environment variables.
 
 ### Components
 
@@ -331,6 +367,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - \`web-app\` → \`api-service\` via **http**: Application API requests.
 - \`api-service\` → \`primary-database\` via **database**: Read and write persistent application data.
+- \`web-app\` → \`api-service\` via **sse**: Receive server-sent application events.
 - \`web-app\` → \`api-service\` via **websocket**: Exchange bidirectional application events.
 - \`api-service\` → \`object-storage\` via **object-storage**: Store and retrieve files.
 
@@ -345,7 +382,9 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - **frontend**: nextjs.
 - **backend**: express.
-- **realtime.mode**: websocket.
+- **deployment.frontend**: vercel.
+- **deployment.backend**: render.
+- **realtime.modes**: sse, websocket.
 - **database.type**: postgresql.
 - **file-storage.provider**: supabase-storage.
 - **infrastructure**: none.
@@ -391,6 +430,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 ### Real-time communication
 
+- Use Server-Sent Events for one-way server-to-client delivery.
 - Use WebSocket for bidirectional delivery.
 - Version event names and payloads independently from the transport.
 - Define reconnection, ordering, authorization, heartbeat, and backpressure behavior.
@@ -436,9 +476,16 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - Frontend: **Next.js**
 - Backend: **Express server**
+- Frontend deployment: **Vercel**
+- Backend deployment: **Render**
 - Language: **TypeScript**
 - Capabilities: Database, Authentication, Real-time communication, File storage
 - Agent mode: **Plan only**
+
+### Deployment constraints
+
+- Frontend — Vercel: Prepare the application for Vercel, including its build, runtime, environment-variable, and routing conventions.
+- Backend — Render: Prepare a Render-compatible build and start contract, health checks where applicable, and documented environment variables.
 
 ### Components
 
@@ -454,6 +501,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - \`web-app\` → \`api-service\` via **http**: Application API requests.
 - \`api-service\` → \`primary-database\` via **database**: Read and write persistent application data.
+- \`web-app\` → \`api-service\` via **sse**: Receive server-sent application events.
 - \`web-app\` → \`api-service\` via **websocket**: Exchange bidirectional application events.
 - \`api-service\` → \`object-storage\` via **object-storage**: Store and retrieve files.
 
@@ -468,7 +516,9 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - **frontend**: nextjs.
 - **backend**: express.
-- **realtime.mode**: websocket.
+- **deployment.frontend**: vercel.
+- **deployment.backend**: render.
+- **realtime.modes**: sse, websocket.
 - **database.type**: postgresql.
 - **file-storage.provider**: supabase-storage.
 - **infrastructure**: none.
@@ -514,6 +564,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 ### Real-time communication
 
+- Use Server-Sent Events for one-way server-to-client delivery.
 - Use WebSocket for bidirectional delivery.
 - Version event names and payloads independently from the transport.
 - Define reconnection, ordering, authorization, heartbeat, and backpressure behavior.
@@ -559,9 +610,16 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - Frontend: **Next.js**
 - Backend: **Express server**
+- Frontend deployment: **Vercel**
+- Backend deployment: **Render**
 - Language: **TypeScript**
 - Capabilities: Database, Authentication, Real-time communication, File storage
 - Agent mode: **Plan then build**
+
+### Deployment constraints
+
+- Frontend — Vercel: Prepare the application for Vercel, including its build, runtime, environment-variable, and routing conventions.
+- Backend — Render: Prepare a Render-compatible build and start contract, health checks where applicable, and documented environment variables.
 
 ### Components
 
@@ -577,6 +635,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - \`web-app\` → \`api-service\` via **http**: Application API requests.
 - \`api-service\` → \`primary-database\` via **database**: Read and write persistent application data.
+- \`web-app\` → \`api-service\` via **sse**: Receive server-sent application events.
 - \`web-app\` → \`api-service\` via **websocket**: Exchange bidirectional application events.
 - \`api-service\` → \`object-storage\` via **object-storage**: Store and retrieve files.
 
@@ -591,7 +650,9 @@ Summary: A platform that helps teams coordinate technical projects.
 
 - **frontend**: nextjs.
 - **backend**: express.
-- **realtime.mode**: websocket.
+- **deployment.frontend**: vercel.
+- **deployment.backend**: render.
+- **realtime.modes**: sse, websocket.
 - **database.type**: postgresql.
 - **file-storage.provider**: supabase-storage.
 - **infrastructure**: none.
@@ -637,6 +698,7 @@ Summary: A platform that helps teams coordinate technical projects.
 
 ### Real-time communication
 
+- Use Server-Sent Events for one-way server-to-client delivery.
 - Use WebSocket for bidirectional delivery.
 - Version event names and payloads independently from the transport.
 - Define reconnection, ordering, authorization, heartbeat, and backpressure behavior.
@@ -682,9 +744,16 @@ Summary: A platform that verifies managed infrastructure selections.
 
 - Frontend: **Next.js**
 - Backend: **Cloudflare Workers**
+- Frontend deployment: **Cloudflare**
+- Backend deployment: **Cloudflare**
 - Language: **TypeScript**
 - Capabilities: Background jobs / reliable message delivery, Reduce repeated work with caching, Protect operations with distributed rate limiting
 - Agent mode: **Plan then build**
+
+### Deployment constraints
+
+- Frontend — Cloudflare: Use Cloudflare-compatible runtimes and deployment configuration; do not rely on unsupported Node.js runtime behavior.
+- Backend — Cloudflare: Use Cloudflare-compatible runtimes and deployment configuration; do not rely on unsupported Node.js runtime behavior.
 
 ### Components
 
@@ -717,7 +786,9 @@ Summary: A platform that verifies managed infrastructure selections.
 
 - **frontend**: nextjs.
 - **backend**: cloudflare-workers.
-- **realtime.mode**: none.
+- **deployment.frontend**: cloudflare.
+- **deployment.backend**: cloudflare.
+- **realtime.modes**: none.
 - **database.type**: none.
 - **file-storage.provider**: none.
 - **infrastructure**: caching, rate-limiting, background-jobs.

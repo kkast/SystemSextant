@@ -1,4 +1,11 @@
-import type { AgentMode, Backend, Capability, Frontend, ToolId } from '../schema/project-config.js';
+import type {
+  AgentMode,
+  Backend,
+  Capability,
+  DeploymentTarget,
+  Frontend,
+  ToolId,
+} from '../schema/project-config.js';
 
 export const frontendLabels: Record<Frontend, string> = {
   nextjs: 'Next.js',
@@ -11,6 +18,14 @@ export const backendLabels: Record<Backend, string> = {
   express: 'Express server',
   'cloudflare-workers': 'Cloudflare Workers',
   none: 'No backend',
+};
+
+export const deploymentTargetLabels: Record<DeploymentTarget, string> = {
+  vercel: 'Vercel',
+  render: 'Render',
+  'local-only': 'Local only',
+  vps: 'Self-managed VPS',
+  cloudflare: 'Cloudflare',
 };
 
 export const capabilities: readonly Capability[] = [
@@ -122,6 +137,13 @@ Everything below is selectable in the current questionnaire unless marked as a c
 - Cloudflare Workers — short-lived edge operations; use queues for asynchronous work.
 - No backend
 
+## Deployment
+- Vercel — best fit for Next.js and also hosts static Vite frontends.
+- Render — managed hosting for Express servers and static frontends, with a free option.
+- Cloudflare — Workers for edge backends and Pages/Workers for Next.js or static frontends.
+- Self-managed VPS — full runtime control for Next.js, Express, or static files.
+- Local only — development, private tools, or software that should not be hosted.
+
 ## Database and data access
 - PostgreSQL: Supabase or Neon; Prisma or Drizzle.
 - MongoDB: MongoDB Atlas; MongoDB driver or Prisma.
@@ -142,6 +164,9 @@ Everything below is selectable in the current questionnaire unless marked as a c
 ${toolLines}
 
 ## Potential additions to discuss
+- Google Cloud Firestore — document database with a free quota.
+- AWS DynamoDB — key-value and document database with a free tier.
+- Cloudflare Workers KV — key-value storage with a free Workers allowance.
 - Additional database, storage, authentication, cache, rate-limit, and queue providers.
 - Additional frontend and backend runtimes.
 

@@ -32,7 +32,8 @@ function setAnswer(
       return { ...answers, productSummary: String(value) };
     case 'frontend':
     case 'backend':
-    case 'realtimeMode':
+    case 'frontendDeployment':
+    case 'backendDeployment':
     case 'database':
     case 'databaseProvider':
     case 'dataAccess':
@@ -43,6 +44,7 @@ function setAnswer(
     case 'queueProvider':
       return { ...answers, [questionId]: String(value) } as DraftQuestionnaireAnswers;
     case 'infrastructure':
+    case 'realtimeModes':
     case 'loginMethods':
       return { ...answers, [questionId]: value } as DraftQuestionnaireAnswers;
     case 'agentMode':
@@ -58,9 +60,6 @@ function validateText(question: Question, value: string): string | undefined {
   if (question.id === 'projectName' && sanitized.length === 0) return 'Project name is required.';
   if (question.id === 'projectName' && sanitized.length > 100)
     return 'Use 100 characters or fewer.';
-  if (question.id === 'productSummary' && sanitized.length < 10) {
-    return 'Describe the product in at least 10 characters.';
-  }
   if (question.id === 'productSummary' && sanitized.length > 2_000) {
     return 'Use 2,000 characters or fewer.';
   }
@@ -131,6 +130,7 @@ export function QuestionnaireScreen({
           initialValues={(answers[question.id] ?? []) as string[]}
           onSubmit={submit}
           onCancel={back}
+          {...(question.id === 'loginMethods' ? { minimumSelections: 1 } : {})}
         />
       ) : (
         <Menu

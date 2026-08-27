@@ -13,6 +13,8 @@ interface MenuProps<T extends string> {
   readonly onCancel?: (() => void) | undefined;
   readonly initialValue?: T | undefined;
   readonly help?: string | undefined;
+  /** Use when each option's description is part of the information being reviewed. */
+  readonly showDescriptions?: boolean | undefined;
 }
 
 export function Menu<T extends string>({
@@ -21,6 +23,7 @@ export function Menu<T extends string>({
   onCancel,
   initialValue,
   help,
+  showDescriptions = false,
 }: MenuProps<T>) {
   const optionSignature = options.map(({ value }) => value).join('\u0000');
   const initialIndex = useMemo(() => {
@@ -60,7 +63,9 @@ export function Menu<T extends string>({
               {selected ? '› ' : '  '}
               {option.label}
             </Text>
-            {selected && option.description ? <Text dimColor> {option.description}</Text> : null}
+            {option.description && (showDescriptions || selected) ? (
+              <Text dimColor> {option.description}</Text>
+            ) : null}
           </Box>
         );
       })}
