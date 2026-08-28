@@ -22,7 +22,7 @@ To launch the browser application locally:
 pnpm dev:web
 ```
 
-The browser workspace autosaves drafts, session YAML, and templates in IndexedDB. `AGENT_PROMPT.md` is derived from the saved YAML only when requested. The browser can import a V2 `project.yaml`, and it can view, copy, and download both generated artifacts. Its production build is configured for Cloudflare Workers Static Assets.
+The browser workspace autosaves drafts in IndexedDB. Generating saves the completed session automatically — one session per unique configuration — and saving a reusable template asks for a template-specific name and rejects duplicate configurations. `AGENT_PROMPT.md` is derived from the saved YAML only when requested. The browser can import a V2 `project.yaml`, and it can view, copy, and download both generated artifacts. Its production build is configured for Cloudflare Workers Static Assets.
 
 The bare interface lets you start a new session, reopen a saved one, or use a template. A new session asks one question at a time about multiple named UIs and services, their descriptions, deployments, data, authentication, and infrastructure. Press `G` from review to generate both artifacts.
 

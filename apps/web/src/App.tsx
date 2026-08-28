@@ -1,20 +1,14 @@
-import {
-  architectureDraftFromConfig,
-  createArchitectureDraft,
-  createCompletedSession,
-  deserializeProjectConfig,
-  generateArtifacts,
-  isProjectConfigV2,
-  normalizeArchitectureDraft,
-  prepareTemplate,
-  type ArtifactBundle,
-  type ProjectConfigV2,
-  type SessionMetadataV1,
-  type TemplateMetadataV1,
+import type {
+  ArchitectureDraft,
+  ArtifactBundle,
+  ProjectConfigV2,
+  SessionMetadataV1,
+  TemplateMetadataV1,
 } from '@systemsextant/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArtifactView } from './ArtifactView.js';
 import { Builder } from './Builder.js';
+import { loadCore, preloadCore } from './core.js';
 import { Library } from './Library.js';
 import {
   BrowserDraftRepository,
@@ -32,9 +26,10 @@ interface ArtifactState {
 function newId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
-function createDraftRecord(draft = createArchitectureDraft()): DraftRecord {
+async function createDraftRecord(draft?: ArchitectureDraft): Promise<DraftRecord> {
+  const value = draft ?? (await loadCore()).createArchitectureDraft();
   const timestamp = new Date().toISOString();
-  return { id: newId('draft'), draft, createdAt: timestamp, updatedAt: timestamp };
+  return { id: newId('draft'), draft: value, createdAt: timestamp, updatedAt: timestamp };
 }
 
 export function App() {
@@ -71,6 +66,14 @@ export function App() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  // Warm the core chunk (yaml + zod + domain logic) after first paint so the
+  // first generation or library action does not pay the network cost.
+  useEffect(() => {
+    // A short delay keeps the core chunk off the first-paint critical path while
+    // still warming it well before the first generation or library action.
+    const timeout = window.setTimeout(preloadCore, 300);
+    return () => window.clearTimeout(timeout);
+  }, []);
   useEffect(() => {
     if (!activeDraft || view !== 'builder') return;
     const timeout = window.setTimeout(() => {
@@ -83,9 +86,10 @@ export function App() {
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [activeDraft, refresh, repositories, view]);
-  const beginDraft = async (record = createDraftRecord()) => {
-    await repositories.drafts.put(record);
-    setActiveDraft(record);
+  const beginDraft = async (record?: DraftRecord) => {
+    const next = record ?? (await createDraftRecord());
+    await repositories.drafts.put(next);
+    setActiveDraft(next);
     setArtifactState(undefined);
     setStatus(undefined);
     setView('builder');
@@ -102,44 +106,52 @@ export function App() {
     setStatus(undefined);
     setView('builder');
   };
-  const generate = () => {
+  const generate = async () => {
     if (!activeDraft) return;
+    const core = await loadCore();
+    let config: ProjectConfigV2;
     try {
-      const config = normalizeArchitectureDraft(activeDraft.draft);
-      setArtifactState({ title: config.name, config, artifacts: generateArtifacts(config) });
-      setStatus(undefined);
-      setView('artifacts');
+      config = core.normalizeArchitectureDraft(activeDraft.draft);
     } catch (reason) {
       setStatus(reason instanceof Error ? reason.message : String(reason));
+      return;
+    }
+    setArtifactState({ title: config.name, config, artifacts: core.generateArtifacts(config) });
+    setStatus(undefined);
+    setView('artifacts');
+    // The session saves automatically with the generation that produced it.
+    try {
+      await core.ensureCompletedSession(repositories.sessions, config, {
+        clock: { now: () => new Date() },
+        generatorVersion: '0.1.0-web',
+      });
+      await refresh();
+    } catch (reason) {
+      setStatus(
+        `The session could not be saved automatically: ${
+          reason instanceof Error ? reason.message : String(reason)
+        }`,
+      );
     }
   };
-  const saveSession = async () => {
-    if (!artifactState?.config) return;
-    await createCompletedSession(repositories.sessions, artifactState.config, {
-      clock: { now: () => new Date() },
-      ids: { createSessionId: () => newId('session') },
-      generatorVersion: '0.1.0-web',
+  const saveTemplate = async (config: ProjectConfigV2, name: string) => {
+    const core = await loadCore();
+    await core.createNamedTemplate(repositories.templates, config, {
+      title: name,
+      now: new Date(),
     });
-    await refresh();
-  };
-  const saveTemplate = async (config: ProjectConfigV2) => {
-    await repositories.templates.create(
-      prepareTemplate(config, {
-        id: newId('template'),
-        title: config.name,
-        description: config.product.summary,
-        now: new Date(),
-      }),
-    );
     await refresh();
   };
   const useTemplate = async (id: string) => {
     const template = await repositories.templates.get(id);
-    if (!template || !isProjectConfigV2(template.config)) {
+    const core = await loadCore();
+    if (!template || !core.isProjectConfigV2(template.config)) {
       setStatus('Only V2 architecture templates can be edited in the browser.');
       return;
     }
-    await beginDraft(createDraftRecord(architectureDraftFromConfig(template.config)));
+    await beginDraft(
+      await createDraftRecord(core.architectureDraftFromConfig(template.config)),
+    );
   };
   const openSession = async (id: string) => {
     const session = await repositories.sessions.get(id);
@@ -159,10 +171,11 @@ export function App() {
   };
   const importProject = async (file: File) => {
     try {
-      const config = deserializeProjectConfig(await file.text());
-      if (!isProjectConfigV2(config))
+      const core = await loadCore();
+      const config = core.deserializeProjectConfig(await file.text());
+      if (!core.isProjectConfigV2(config))
         throw new Error('The browser editor currently imports V2 project.yaml files only.');
-      await beginDraft(createDraftRecord(architectureDraftFromConfig(config)));
+      await beginDraft(await createDraftRecord(core.architectureDraftFromConfig(config)));
     } catch (reason) {
       setStatus(reason instanceof Error ? reason.message : String(reason));
     }
@@ -191,7 +204,6 @@ export function App() {
             >
               Library <span>{sessions.length + templates.length}</span>
             </button>
-            <span className="local-badge">Local to this browser</span>
           </nav>
         </header>
       )}
@@ -336,7 +348,6 @@ export function App() {
             artifacts={artifactState.artifacts}
             {...(artifactState.config ? { config: artifactState.config } : {})}
             onBack={() => setView(artifactState.config ? 'builder' : 'library')}
-            onSaveSession={saveSession}
             onSaveTemplate={saveTemplate}
           />
         )}

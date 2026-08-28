@@ -1,10 +1,10 @@
 import process from 'node:process';
-import clipboard from 'clipboardy';
 import { Command } from 'commander';
 import { render } from 'ink';
 import { App } from './app/app.js';
 import { FileSessionRepository } from './adapters/file-session-repository.js';
 import { FileTemplateRepository } from './adapters/file-template-repository.js';
+import { createClipboard } from './adapters/clipboard.js';
 import { getSystemSextantDataDirectory } from './adapters/paths.js';
 import { systemClock, uuidGenerator } from './adapters/platform.js';
 
@@ -31,7 +31,7 @@ export async function run(argv: readonly string[] = process.argv): Promise<void>
     <App
       repository={repository}
       templateRepository={templateRepository}
-      clipboard={{ write: (value) => clipboard.write(value) }}
+      clipboard={createClipboard()}
       clock={systemClock}
       ids={uuidGenerator}
       generatorVersion={VERSION}

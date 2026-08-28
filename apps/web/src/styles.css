@@ -80,13 +80,6 @@ button {
   color: var(--coral);
   font-size: 1.45rem;
 }
-.local-badge {
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 7px 12px;
-  font-size: 0.78rem;
-}
 .topnav {
   display: flex;
   align-items: center;
@@ -165,10 +158,6 @@ h1 {
 }
 .primary-action.coral {
   background: var(--coral);
-}
-.primary-action.large {
-  margin-top: 32px;
-  padding: 17px 24px;
 }
 .secondary-action {
   border: 1px solid var(--line);
@@ -433,17 +422,6 @@ textarea {
 .workspace-sidebar .nav-item.active {
   background: rgb(255 255 255 / 11%);
   color: white;
-}
-.sidebar-generate {
-  margin-top: auto;
-  border: 0;
-  border-radius: 999px;
-  background: var(--coral);
-  color: white;
-  padding: 13px 16px;
-  font-weight: 760;
-  display: flex;
-  justify-content: space-between;
 }
 .workspace-main {
   min-width: 0;
@@ -775,6 +753,20 @@ dd {
   background: transparent;
   font-weight: 720;
 }
+.template-name-form {
+  display: grid;
+  gap: 14px;
+}
+.template-name-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+.template-name-form .template-name-actions {
+  display: flex;
+  gap: 8px;
+}
 
 .artifact-workspace,
 .library-page {
@@ -922,9 +914,6 @@ dd {
 }
 
 @media (max-width: 720px) {
-  .local-badge {
-    display: none;
-  }
   .home-grid {
     grid-template-columns: 1fr;
   }
@@ -985,9 +974,6 @@ dd {
   }
   .workspace-sidebar .nav-item {
     min-width: max-content;
-  }
-  .sidebar-generate {
-    margin-top: 16px;
   }
   .editor-section {
     width: 90%;

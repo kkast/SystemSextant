@@ -53,7 +53,7 @@ architecture draft
 - Normalization expands shortcuts into explicit components, resources, connections, contracts, and confirmed decisions.
 - Zod validates data at each boundary and rejects invalid graph references or duplicate stable IDs.
 - Artifact generation uses stable ordering, excludes timestamps from project artifacts, and hashes the exact stored content.
-- Generation automatically persists one session per unique project-artifact hash. Templates require their own user-provided name and use the project hash for duplicate prevention.
+- Generation automatically persists one session per unique project-artifact hash. Templates require their own user-provided name and use the project hash for duplicate prevention. Both rules run through shared core use cases (`ensureCompletedSession`, `createNamedTemplate`) so the browser and CLI behave identically.
 - Session use cases depend on `SessionRepository`, `Clock`, and `IdGenerator` interfaces so persistence and platform behavior remain replaceable.
 - The CLI repository stages all session files before renaming them into place, then verifies hashes whenever a session is loaded.
 - Browser repositories commit each record in an IndexedDB transaction. Browser sessions persist metadata and validated `project.yaml`, then compile `AGENT_PROMPT.md` from that YAML only when the session is opened. Templates persist validated configurations and never store derived prompts.
@@ -120,7 +120,7 @@ Product references: [Upstash Redis](https://upstash.com/docs/redis/overall/getst
 | Ink and React                | Model the interactive terminal as composable stateful UI components.               |
 | Commander                    | Supplies the executable contract, help, version, and future command routing.       |
 | `env-paths`                  | Resolves platform-appropriate local application-data storage.                      |
-| `clipboardy`                 | Implements explicit local clipboard actions behind a CLI adapter.                  |
+| `clipboardy`                 | Implements explicit local clipboard actions behind a CLI adapter with an OSC 52 fallback for headless SSH sessions. |
 | `strip-ansi`                 | Prevents stored or entered text from controlling terminal output.                  |
 | esbuild                      | Bundles the CLI entry point while leaving runtime packages external.               |
 | Vitest                       | Covers core rules, prompt snapshots, adapters, and Ink behavior.                   |

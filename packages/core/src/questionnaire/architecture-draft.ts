@@ -54,6 +54,7 @@ export const ArchitectureDraftSchema = z.object({
   cache: z.object({ provider: z.enum(['upstash', 'cloudflare']), users: ResourceUsersSchema }).optional(),
   rateLimit: z.object({ provider: z.enum(['upstash', 'cloudflare']), users: ResourceUsersSchema }).optional(),
   queue: z.object({ provider: z.enum(['upstash', 'cloudflare']), users: ResourceUsersSchema }).optional(),
+  scheduledJobs: z.boolean().default(false),
   fileStorage: z
     .object({ provider: z.enum(['supabase-storage', 'cloudflare-r2']), users: ResourceUsersSchema })
     .optional(),
@@ -66,7 +67,7 @@ export type ArchitectureDraft = z.infer<typeof ArchitectureDraftSchema>;
 
 export function createArchitectureDraft(): ArchitectureDraft {
   return {
-    projectName: '', productSummary: '', uis: [], services: [], uiServices: [], serviceDependencies: [], realtimeModes: [], authService: 'none', loginMethods: [], agentMode: 'plan-then-build',
+    projectName: '', productSummary: '', uis: [], services: [], uiServices: [], serviceDependencies: [], realtimeModes: [], scheduledJobs: false, authService: 'none', loginMethods: [], agentMode: 'plan-then-build',
   };
 }
 
@@ -114,6 +115,8 @@ function validateDraft(draft: ArchitectureDraft): ArchitectureDraft {
   }
   if ([parsed.cache, parsed.rateLimit, parsed.queue].some((resource) => resource?.provider === 'cloudflare') && !hasCloudflareWorker)
     throw new Error('Cloudflare-native infrastructure requires a Cloudflare Workers service.');
+  if (parsed.scheduledJobs && !hasCloudflareWorker)
+    throw new Error('Scheduled jobs require a Cloudflare Workers service.');
   if (parsed.realtimeModes.length > 0 && parsed.services.length === 0)
     throw new Error('Real-time communication requires a service.');
   if (parsed.realtimeModes.includes('websocket') && !parsed.services.some((service) => service.runtime === 'express'))
@@ -191,7 +194,7 @@ export function normalizeArchitectureDraft(input: ArchitectureDraft): ProjectCon
     connectResource('object-storage', 'object-storage', 'Store and retrieve files', users);
   }
   const selectedCapabilities = normalizeCapabilities([
-    ...(draft.database ? ['database' as const] : []), ...(draft.cache ? ['caching' as const] : []), ...(draft.rateLimit ? ['rate-limiting' as const] : []), ...(draft.queue ? ['background-jobs' as const] : []), ...(draft.fileStorage ? ['file-storage' as const] : []), ...(draft.realtimeModes.length ? ['real-time' as const] : []), ...(draft.authService !== 'none' ? ['authentication' as const] : []),
+    ...(draft.database ? ['database' as const] : []), ...(draft.cache ? ['caching' as const] : []), ...(draft.rateLimit ? ['rate-limiting' as const] : []), ...(draft.queue ? ['background-jobs' as const] : []), ...(draft.scheduledJobs ? ['scheduled-jobs' as const] : []), ...(draft.fileStorage ? ['file-storage' as const] : []), ...(draft.realtimeModes.length ? ['real-time' as const] : []), ...(draft.authService !== 'none' ? ['authentication' as const] : []),
   ]);
   const tools = [
     ...(draft.cache?.provider === 'upstash' ? ['upstash-redis-cache' as const] : []),
@@ -200,10 +203,13 @@ export function normalizeArchitectureDraft(input: ArchitectureDraft): ProjectCon
     ...(draft.rateLimit?.provider === 'cloudflare' ? ['cloudflare-ratelimit' as const] : []),
     ...(draft.queue?.provider === 'upstash' ? ['upstash-qstash' as const] : []),
     ...(draft.queue?.provider === 'cloudflare' ? ['cloudflare-queues' as const] : []),
+    ...(draft.scheduledJobs ? ['cloudflare-cron' as const] : []),
   ];
   for (const component of components) {
     if (resources.some((resource) => resource.consumerComponentIds.includes(component.id))) component.capabilities.push(...selectedCapabilities.filter((capability) => capability === 'database' || capability === 'caching' || capability === 'rate-limiting' || capability === 'background-jobs' || capability === 'file-storage'));
     if (draft.realtimeModes.length && component.kind === 'service') component.capabilities.push('real-time');
+    if (draft.scheduledJobs && component.kind === 'service' && component.runtime === 'cloudflare-workers')
+      component.capabilities.push('scheduled-jobs');
     if (draft.authService !== 'none') component.capabilities.push('authentication');
   }
   return ProjectConfigV2Schema.parse({
@@ -216,6 +222,7 @@ export function normalizeArchitectureDraft(input: ArchitectureDraft): ProjectCon
       { key: 'authentication.service', value: draft.authService, source: 'user', status: 'confirmed' },
       { key: 'authentication.login-methods', value: draft.loginMethods, source: 'user', status: 'confirmed' },
       { key: 'agent.mode', value: draft.agentMode, source: 'user', status: 'confirmed' },
+      ...(draft.scheduledJobs ? [{ key: 'scheduled-jobs.provider', value: 'cloudflare', source: 'user' as const, status: 'confirmed' as const }] : []),
     ],
     agentPreferences: { mode: draft.agentMode, questionPolicy: 'blocking-only' },
   });
@@ -251,6 +258,7 @@ export function architectureDraftFromConfig(config: ProjectConfigV2): Architectu
     ...(queue ? { queue: { provider: queue.technology.includes('Cloudflare') ? 'cloudflare' : 'upstash', users: resourceUsers(queue)! } } : {}),
     ...(fileStorage ? { fileStorage: { provider: fileStorage.technology.includes('R2') ? 'cloudflare-r2' : 'supabase-storage', users: resourceUsers(fileStorage)! } } : {}),
     realtimeModes: (config.decisions.find((decision) => decision.key === 'realtime.modes')?.value ?? []) as string[],
+    scheduledJobs: config.tools.includes('cloudflare-cron'),
     authService: config.decisions.find((decision) => decision.key === 'authentication.service')?.value ?? 'none',
     loginMethods: (config.decisions.find((decision) => decision.key === 'authentication.login-methods')?.value ?? []) as string[],
     agentMode: config.agentPreferences.mode,

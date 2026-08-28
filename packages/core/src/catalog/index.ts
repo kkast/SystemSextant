@@ -33,6 +33,7 @@ export const capabilities: readonly Capability[] = [
   'authentication',
   'real-time',
   'background-jobs',
+  'scheduled-jobs',
   'file-storage',
   'caching',
   'rate-limiting',
@@ -43,6 +44,7 @@ export const capabilityLabels: Record<Capability, string> = {
   authentication: 'Authentication',
   'real-time': 'Real-time communication',
   'background-jobs': 'Background jobs / reliable message delivery',
+  'scheduled-jobs': 'Periodic scheduled execution',
   'file-storage': 'File storage',
   caching: 'Reduce repeated work with caching',
   'rate-limiting': 'Protect operations with distributed rate limiting',
@@ -59,7 +61,7 @@ export const agentModeLabels: Record<AgentMode, string> = {
 export interface ToolDefinition {
   readonly id: ToolId;
   readonly label: string;
-  readonly challenge: 'caching' | 'rate-limiting' | 'background-jobs';
+  readonly challenge: 'caching' | 'rate-limiting' | 'background-jobs' | 'scheduled-jobs';
   readonly provider: 'upstash' | 'cloudflare';
   readonly promptBlockId: `tool.${string}`;
 }
@@ -107,6 +109,13 @@ export const toolCatalog: readonly ToolDefinition[] = [
     provider: 'cloudflare',
     promptBlockId: 'tool.cloudflare.queues',
   },
+  {
+    id: 'cloudflare-cron',
+    label: 'Cloudflare Workers Cron Triggers',
+    challenge: 'scheduled-jobs',
+    provider: 'cloudflare',
+    promptBlockId: 'tool.cloudflare.cron',
+  },
 ];
 
 export function normalizeCapabilities(selected: readonly Capability[]): Capability[] {
@@ -134,7 +143,7 @@ Everything below is selectable in the current questionnaire unless marked as a c
 ## Backend
 - Next.js server features — requires a Next.js frontend.
 - Express server — supports WebSockets and long-lived server processes.
-- Cloudflare Workers — short-lived edge operations; use queues for asynchronous work.
+- Cloudflare Workers — short-lived edge operations; use queues for asynchronous work and Cron Triggers for periodic execution.
 - No backend
 
 ## Deployment

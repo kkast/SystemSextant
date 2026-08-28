@@ -52,7 +52,15 @@ function patchUi(state: WizardState, index: number, patch: Partial<UiDraft>): Wi
   return { ...state, draft: { ...state.draft, uis: state.draft.uis.map((ui, current) => current === index ? { ...ui, ...patch } : ui) } };
 }
 function patchService(state: WizardState, index: number, patch: Partial<ServiceDraft>): WizardState {
-  return { ...state, draft: { ...state.draft, services: state.draft.services.map((service, current) => current === index ? { ...service, ...patch } : service) } };
+  const services = state.draft.services.map((service, current) => current === index ? { ...service, ...patch } : service);
+  return {
+    ...state,
+    draft: {
+      ...state.draft,
+      services,
+      scheduledJobs: state.draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers'),
+    },
+  };
 }
 function initialState(initialDraft?: ArchitectureDraft): WizardState {
   const draft = initialDraft ?? createArchitectureDraft();
@@ -79,7 +87,7 @@ function questionsFor(state: WizardState): Question[] {
       { id: `ui-${index}-deployment`, kind: 'single', label: `UI ${index + 1}: deployment`, options: ['vercel', 'cloudflare', 'render', 'vps', 'local-only'].map((value) => ({ value, label: value })), value: ui.deployment, apply: (current, value) => patchUi(current, index, { deployment: String(value) as UiDraft['deployment'] }) },
     );
   }
-  questions.push({ id: 'service-count', kind: 'single', label: 'How many backend services does the product need?', help: 'Each service gets its own name, description, runtime, and deployment.', options: state.uiCount === 0 ? countOptions.slice(1) : countOptions, value: state.serviceCount === undefined ? '' : String(state.serviceCount), apply: (current, value) => { const serviceCount = Number(value); return { ...current, serviceCount, draft: { ...current.draft, services: resizeServices(current.draft.services, serviceCount) } }; } });
+  questions.push({ id: 'service-count', kind: 'single', label: 'How many backend services does the product need?', help: 'Each service gets its own name, description, runtime, and deployment.', options: state.uiCount === 0 ? countOptions.slice(1) : countOptions, value: state.serviceCount === undefined ? '' : String(state.serviceCount), apply: (current, value) => { const serviceCount = Number(value); const services = resizeServices(current.draft.services, serviceCount); return { ...current, serviceCount, draft: { ...current.draft, services, scheduledJobs: current.draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers') } }; } });
   const nextUis = state.draft.uis.filter(({ runtime }) => runtime === 'nextjs');
   for (let index = 0; index < (state.serviceCount ?? 0); index += 1) {
     const service = state.draft.services[index]!;
@@ -95,6 +103,7 @@ function questionsFor(state: WizardState): Question[] {
   const hasServices = (state.serviceCount ?? 0) > 0;
   const hasExpress = state.draft.services.some(({ runtime }) => runtime === 'express');
   const hasCloudflare = state.draft.services.some(({ runtime }) => runtime === 'cloudflare-workers');
+  if (hasCloudflare) questions.push({ id: 'scheduled-jobs', kind: 'single', label: 'Periodic scheduled execution', help: 'Run code on a schedule with Cloudflare Workers Cron Triggers.', options: [{ value: 'no', label: 'No scheduled execution' }, { value: 'yes', label: 'Cron Triggers', description: 'Scheduled handler in the Cloudflare Worker.' }], value: state.draft.scheduledJobs ? 'yes' : 'no', apply: (current, value) => ({ ...current, draft: { ...current.draft, scheduledJobs: String(value) === 'yes' } }) });
   if (hasServices) questions.push({ id: 'realtime', kind: 'multi', label: 'Real-time communication', help: 'Select any transports needed, or continue with none.', options: [{ value: 'sse', label: 'Server-Sent Events' }, ...(hasExpress ? [{ value: 'websocket', label: 'WebSockets' }] : [])], value: state.draft.realtimeModes, apply: (current, value) => ({ ...current, draft: { ...current.draft, realtimeModes: value as ArchitectureDraft['realtimeModes'] } }) });
   questions.push({ id: 'database', kind: 'single', label: 'Database', options: [{ value: 'none', label: 'No database' }, { value: 'postgresql', label: 'PostgreSQL' }, { value: 'mongodb', label: 'MongoDB / NoSQL' }, ...(hasCloudflare ? [{ value: 'cloudflare-d1', label: 'Cloudflare D1' }] : [])], value: state.databaseChoice ?? '', apply: (current, value) => {
     const databaseChoice = String(value) as NonNullable<WizardState['databaseChoice']>;

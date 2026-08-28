@@ -9,6 +9,7 @@ import {
   type QuestionnaireAnswers,
 } from '@systemsextant/core';
 import { ExportConflictError, exportSessionArtifacts } from './export-artifacts.js';
+import { createClipboard } from './clipboard.js';
 import { FileSessionRepository } from './file-session-repository.js';
 import { FileTemplateRepository } from './file-template-repository.js';
 import { sanitizeTerminalText } from './sanitize.js';
@@ -144,6 +145,38 @@ describe('terminal sanitization', () => {
   it('removes ANSI and control sequences while preserving Unicode and newlines', () => {
     expect(sanitizeTerminalText('\u001B[31mhello\u001B[0m\nБеларусь\u0007')).toBe(
       'hello\nБеларусь',
+    );
+  });
+});
+
+describe('clipboard adapter', () => {
+  it('uses the system clipboard when available', async () => {
+    const writes: string[] = [];
+    const clipboard = createClipboard(
+      { write: async (value) => void writes.push(value) },
+      { write: () => true } as unknown as NodeJS.WritableStream,
+    );
+    await clipboard.write('prompt');
+    expect(writes).toEqual(['prompt']);
+  });
+
+  it('falls back to OSC 52 when the system clipboard is unavailable', async () => {
+    const chunks: string[] = [];
+    const clipboard = createClipboard(
+      { write: async () => { throw new Error('no display'); } },
+      { write: (chunk) => void chunks.push(String(chunk)) } as unknown as NodeJS.WritableStream,
+    );
+    await clipboard.write('hello');
+    expect(chunks).toEqual([`\x1b]52;c;${Buffer.from('hello', 'utf8').toString('base64')}\x07`]);
+  });
+
+  it('rejects oversized content instead of truncating silently', async () => {
+    const clipboard = createClipboard(
+      { write: async () => { throw new Error('no display'); } },
+      { write: () => true } as unknown as NodeJS.WritableStream,
+    );
+    await expect(clipboard.write('x'.repeat(100_001))).rejects.toThrow(
+      /too large/,
     );
   });
 });

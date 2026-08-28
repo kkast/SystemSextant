@@ -1,10 +1,6 @@
-import {
-  normalizeArchitectureDraft,
-  type ArchitectureDraft,
-  type ServiceDraft,
-  type UiDraft,
-} from '@systemsextant/core';
+import type { ArchitectureDraft, ServiceDraft, UiDraft } from '@systemsextant/core';
 import { useMemo, useState } from 'react';
+import { loadCore } from './core.js';
 
 type Section = 'project' | 'components' | 'connections' | 'resources' | 'workflow' | 'review';
 const sections: readonly { id: Section; label: string }[] = [
@@ -21,6 +17,61 @@ function nextId(prefix: string, existing: readonly string[]) {
   while (existing.includes(`${prefix}-${index}`)) index += 1;
   return `${prefix}-${index}`;
 }
+
+/**
+ * Preset labels, names, and descriptions keep component types self-explanatory. Selecting a role or
+ * runtime replaces only untouched values, so names and descriptions the user wrote are preserved.
+ */
+const uiRolePresets: Readonly<Record<UiDraft['role'], { label: string; name: string; description: string }>> = {
+  admin: {
+    label: 'Admin portal',
+    name: 'Admin UI',
+    description: 'Admin UI for internal operations and management.',
+  },
+  'business-client': {
+    label: 'Business client',
+    name: 'Business client UI',
+    description: 'Interface for business customers and their teams.',
+  },
+  'user-client': {
+    label: 'User client',
+    name: 'User client UI',
+    description: 'Primary interface for end users.',
+  },
+  'landing-page': {
+    label: 'Landing page',
+    name: 'Landing page',
+    description: 'Public marketing and conversion page.',
+  },
+  custom: {
+    label: 'Custom UI',
+    name: 'Custom UI',
+    description: 'Interface with a purpose you describe.',
+  },
+};
+const serviceRuntimePresets: Readonly<Record<'express' | 'cloudflare-workers', { label: string; description: string }>> = {
+  express: { label: 'Express', description: 'Backend server exposing HTTP APIs.' },
+  'cloudflare-workers': {
+    label: 'Cloudflare Workers',
+    description: 'Backend server running on Cloudflare Workers.',
+  },
+};
+const serviceNamePreset = 'Backend server';
+const presetUiNames = new Set(Object.values(uiRolePresets).map((preset) => preset.name));
+const presetUiDescriptions = new Set(Object.values(uiRolePresets).map((preset) => preset.description));
+const presetServiceDescriptions = new Set(Object.values(serviceRuntimePresets).map((preset) => preset.description));
+const untouchedUiName = (name: string) =>
+  !name.trim() || presetUiNames.has(name) || /^UI \d+$/.test(name);
+const untouchedUiDescription = (description: string) =>
+  !description.trim() ||
+  presetUiDescriptions.has(description) ||
+  description === 'Describe this interface, its users, and the outcome it owns.';
+const untouchedServiceName = (name: string) =>
+  !name.trim() || name === serviceNamePreset || /^Service \d+$/.test(name);
+const untouchedServiceDescription = (description: string) =>
+  !description.trim() ||
+  presetServiceDescriptions.has(description) ||
+  description === 'Describe the business capability and operations this service owns.';
 
 function CheckboxGroup({
   values,
@@ -94,7 +145,7 @@ export function Builder({
   draft: ArchitectureDraft;
   savedAt?: string;
   onChange: (draft: ArchitectureDraft) => void;
-  onGenerate: () => void;
+  onGenerate: () => void | Promise<void>;
   onExit: () => void;
 }) {
   const [section, setSection] = useState<Section>('project');
@@ -120,11 +171,27 @@ export function Builder({
       ...draft,
       uis: draft.uis.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     });
-  const patchService = (id: string, patch: Partial<ServiceDraft>) =>
+  const patchService = (id: string, patch: Partial<ServiceDraft>) => {
+    const services = draft.services.map((item) =>
+      item.id === id ? { ...item, ...patch } : item,
+    );
     onChange({
       ...draft,
-      services: draft.services.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+      services,
+      scheduledJobs:
+        draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers'),
     });
+  };
+  const patchUiRole = (id: string, role: UiDraft['role']) => {
+    const preset = uiRolePresets[role];
+    const current = draft.uis.find((item) => item.id === id);
+    if (!current) return;
+    patchUi(id, {
+      role,
+      ...(untouchedUiName(current.name) ? { name: preset.name } : {}),
+      ...(untouchedUiDescription(current.description) ? { description: preset.description } : {}),
+    });
+  };
 
   const removeComponent = (id: string) => {
     const remaining = ids.filter((candidate) => candidate !== id);
@@ -161,10 +228,13 @@ export function Builder({
     const rateLimit = repair(draft.rateLimit);
     const queue = repair(draft.queue);
     const fileStorage = repair(draft.fileStorage);
+    const services = draft.services.filter((item) => item.id !== id);
     onChange({
       ...base,
       uis: draft.uis.filter((item) => item.id !== id),
-      services: draft.services.filter((item) => item.id !== id),
+      services,
+      scheduledJobs:
+        draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers'),
       uiServices: draft.uiServices
         .filter((item) => item.uiId !== id)
         .map((item) => ({
@@ -185,14 +255,17 @@ export function Builder({
     });
   };
   const generate = () => {
-    try {
-      normalizeArchitectureDraft(draft);
-      setError(undefined);
-      onGenerate();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
-      setSection('review');
-    }
+    void (async () => {
+      const core = await loadCore();
+      try {
+        core.normalizeArchitectureDraft(draft);
+        setError(undefined);
+        await onGenerate();
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : String(reason));
+        setSection('review');
+      }
+    })();
   };
 
   return (
@@ -222,9 +295,6 @@ export function Builder({
             </button>
           ))}
         </nav>
-        <button className="sidebar-generate" onClick={generate}>
-          Generate artifacts <span>→</span>
-        </button>
       </aside>
       <div className="workspace-main">
         {section === 'project' && (
@@ -273,11 +343,11 @@ export function Builder({
                       ...draft.uis,
                       {
                         id,
-                        name: `UI ${draft.uis.length + 1}`,
+                        name: uiRolePresets.custom.name,
                         role: 'custom',
                         runtime: 'vite-vanilla',
                         deployment: 'cloudflare',
-                        description: 'Describe this interface, its users, and the outcome it owns.',
+                        description: uiRolePresets.custom.description,
                       },
                     ],
                   });
@@ -310,15 +380,13 @@ export function Builder({
                       Role
                       <select
                         value={ui.role}
-                        onChange={(event) =>
-                          patchUi(ui.id, { role: event.target.value as UiDraft['role'] })
-                        }
+                        onChange={(event) => patchUiRole(ui.id, event.target.value as UiDraft['role'])}
                       >
-                        <option value="admin">Admin portal</option>
-                        <option value="business-client">Business client</option>
-                        <option value="user-client">User client</option>
-                        <option value="landing-page">Landing page</option>
-                        <option value="custom">Custom UI</option>
+                        {Object.entries(uiRolePresets).map(([value, preset]) => (
+                          <option value={value} key={value}>
+                            {preset.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label>
@@ -374,11 +442,10 @@ export function Builder({
                       ...draft.services,
                       {
                         id,
-                        name: `Service ${draft.services.length + 1}`,
+                        name: serviceNamePreset,
                         runtime: 'cloudflare-workers',
                         deployment: 'cloudflare',
-                        description:
-                          'Describe the business capability and operations this service owns.',
+                        description: serviceRuntimePresets['cloudflare-workers'].description,
                       },
                     ],
                   });
@@ -417,12 +484,18 @@ export function Builder({
                           const runtime = event.target.value as 'express' | 'cloudflare-workers';
                           patchService(service.id, {
                             runtime,
+                            ...(untouchedServiceDescription(service.description)
+                              ? { description: serviceRuntimePresets[runtime].description }
+                              : {}),
                             deployment: runtime === 'express' ? 'render' : 'cloudflare',
                           });
                         }}
                       >
-                        <option value="cloudflare-workers">Cloudflare Workers</option>
-                        <option value="express">Express</option>
+                        {Object.entries(serviceRuntimePresets).map(([value, preset]) => (
+                          <option value={value} key={value}>
+                            {preset.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label>
@@ -891,6 +964,25 @@ export function Builder({
                     </>
                   )}
                 </ResourceEditor>
+                {draft.services.some((service) => service.runtime === 'cloudflare-workers') && (
+                  <article className="editor-card">
+                    <div>
+                      <span className="type-pill resource">Capability</span>
+                      <h2>Periodic scheduled execution</h2>
+                      <p>Cloudflare Workers Cron Triggers run code on a schedule.</p>
+                    </div>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={draft.scheduledJobs}
+                        onChange={(event) =>
+                          onChange({ ...draft, scheduledJobs: event.target.checked })
+                        }
+                      />{' '}
+                      Enable Cron Triggers
+                    </label>
+                  </article>
+                )}
               </div>
             )}
           </EditorSection>
@@ -1042,9 +1134,6 @@ export function Builder({
                 </div>
               </dl>
             </article>
-            <button className="primary-action large" onClick={generate}>
-              Generate project artifacts <span>→</span>
-            </button>
           </EditorSection>
         )}
         <nav className="step-navigation" aria-label="Architecture step navigation">

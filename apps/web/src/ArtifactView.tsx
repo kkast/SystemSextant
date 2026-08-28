@@ -7,19 +7,19 @@ export function ArtifactView({
   artifacts,
   config,
   onBack,
-  onSaveSession,
   onSaveTemplate,
 }: {
   title: string;
   artifacts: ArtifactBundle;
   config?: ProjectConfigV2;
   onBack: () => void;
-  onSaveSession: () => Promise<void>;
-  onSaveTemplate: (config: ProjectConfigV2) => Promise<void>;
+  onSaveTemplate: (config: ProjectConfigV2, name: string) => Promise<void>;
 }) {
   const [tab, setTab] = useState<'yaml' | 'prompt'>('yaml');
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
   const content = tab === 'yaml' ? artifacts.projectYaml : artifacts.agentPrompt;
   const filename = tab === 'yaml' ? 'project.yaml' : 'AGENT_PROMPT.md';
   const act = async (action: () => Promise<void>, message: string) => {
@@ -28,6 +28,21 @@ export function ArtifactView({
     try {
       await action();
       setNotice(message);
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const saveTemplate = async () => {
+    if (!config || !templateName.trim() || busy) return;
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      await onSaveTemplate(config, templateName);
+      setTemplateOpen(false);
+      setTemplateName('');
+      setNotice('Template saved locally.');
     } catch (reason) {
       setNotice(reason instanceof Error ? reason.message : String(reason));
     } finally {
@@ -43,29 +58,19 @@ export function ArtifactView({
           </button>
           <p className="eyebrow">Generated artifacts</p>
           <h1>{title}</h1>
+          {config && <p className="muted">Saved automatically to your local sessions.</p>}
         </div>
         <div className="artifact-primary-actions">
           {config && (
             <button
               className="secondary-action"
               disabled={busy}
-              onClick={() => void act(() => onSaveTemplate(config), 'Template saved locally.')}
+              onClick={() => {
+                setNotice(undefined);
+                setTemplateOpen(true);
+              }}
             >
               Save as template
-            </button>
-          )}
-          {config && (
-            <button
-              className="primary-action compact"
-              disabled={busy}
-              onClick={() =>
-                void act(
-                  onSaveSession,
-                  'Session YAML saved locally. The prompt will be regenerated when opened.',
-                )
-              }
-            >
-              Save session
             </button>
           )}
           <button
@@ -80,6 +85,46 @@ export function ArtifactView({
         <div className="message" role="status">
           {notice}
         </div>
+      )}
+      {templateOpen && config && (
+        <form
+          className="message template-name-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveTemplate();
+          }}
+        >
+          <label>
+            Template name
+            <input
+              autoFocus
+              value={templateName}
+              maxLength={100}
+              placeholder="Name this reusable architecture"
+              onChange={(event) => setTemplateName(event.target.value)}
+            />
+          </label>
+          <div className="template-name-actions">
+            <button
+              type="submit"
+              className="primary-action compact"
+              disabled={busy || !templateName.trim()}
+            >
+              {busy ? 'Saving…' : 'Save template'}
+            </button>
+            <button
+              type="button"
+              className="secondary-action"
+              disabled={busy}
+              onClick={() => {
+                setTemplateOpen(false);
+                setTemplateName('');
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
       <div className="artifact-panel">
         <div className="artifact-toolbar">

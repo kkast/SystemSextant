@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   architectureDraftFromConfig,
   createArchitectureDraft,
+  createNamedTemplate,
   normalizeArchitectureDraft,
   prepareCompletedSession,
   prepareTemplate,
+  type TemplateRecord,
+  type TemplateRepository,
 } from '@systemsextant/core';
 import {
   BrowserDraftRepository,
@@ -88,9 +91,11 @@ describe('browser repositories', () => {
     });
     await repository.create(record);
 
-    const stored = JSON.stringify(await rawStoredValue(name, 'sessions', 'session-1'));
-    expect(stored).toContain('projectYaml');
-    expect(stored).not.toContain('agentPrompt');
+    const stored = (await rawStoredValue(name, 'sessions', 'session-1')) as {
+      value: Record<string, unknown>;
+    };
+    // Browser sessions persist only metadata and project YAML; the prompt is compiled on demand.
+    expect(Object.keys(stored.value).sort()).toEqual(['metadata', 'projectYaml']);
 
     expect((await repository.list())[0]?.title).toBe('Browser project');
     expect((await repository.get('session-1'))?.artifacts.projectYaml).toBe(
@@ -117,6 +122,35 @@ describe('browser repositories', () => {
 
     await repository.delete('template-1');
     expect(await repository.get('template-1')).toBeUndefined();
+  });
+
+  it('rejects saving a duplicate configuration as a named template', async () => {
+    const repository = new BrowserTemplateRepository(indexedDB, databaseName());
+    const config = normalizeArchitectureDraft(completedDraft());
+    const dependencies = {
+      title: 'Browser template',
+      now: new Date('2026-01-02T00:00:00.000Z'),
+    };
+
+    await createNamedTemplate(repository, config, dependencies);
+    await expect(
+      createNamedTemplate(repository, config, { ...dependencies, title: 'Second try' }),
+    ).rejects.toThrow(/already saved as “Browser template”/);
+    expect((await repository.list())).toHaveLength(1);
+  });
+
+  it('atomically prevents concurrent duplicate template saves', async () => {
+    const repository = new BrowserTemplateRepository(indexedDB, databaseName());
+    const config = normalizeArchitectureDraft(completedDraft());
+    const now = new Date('2026-01-02T00:00:00.000Z');
+    const results = await Promise.allSettled([
+      createNamedTemplate(repository, config, { title: 'First', now }),
+      createNamedTemplate(repository, config, { title: 'Second', now }),
+    ]);
+
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(({ status }) => status === 'rejected')).toHaveLength(1);
+    expect(await repository.list()).toHaveLength(1);
   });
 
   it('restores grouped connections when importing a generated V2 configuration', () => {
