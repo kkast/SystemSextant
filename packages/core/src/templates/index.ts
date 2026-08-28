@@ -56,17 +56,20 @@ export class DuplicateTemplateError extends Error {
 export async function createNamedTemplate(
   repository: TemplateRepository,
   input: ProjectConfig,
-  dependencies: { readonly id: string; readonly title: string; readonly description?: string; readonly now: Date },
+  dependencies: { readonly title: string; readonly description?: string; readonly now: Date },
 ): Promise<TemplateRecord> {
   const title = dependencies.title.trim();
   if (!title) throw new Error('Give the template a name.');
   const config = parseProjectConfig(input);
+  const projectConfigHash = generateArtifacts(config).projectConfigHash;
   const duplicate = (await repository.list()).find(
-    (template) => template.projectConfigHash === generateArtifacts(config).projectConfigHash,
+    (template) => template.projectConfigHash === projectConfigHash,
   );
   if (duplicate) throw new DuplicateTemplateError(duplicate.title);
   const record = prepareTemplate(config, {
-    id: dependencies.id,
+    // A content-derived ID makes repository creation the final atomic duplicate guard,
+    // including concurrent saves that both complete the friendly preflight check.
+    id: `template-${projectConfigHash}`,
     title,
     description: dependencies.description ?? config.product.summary,
     now: dependencies.now,

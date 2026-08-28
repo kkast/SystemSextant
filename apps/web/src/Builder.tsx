@@ -171,11 +171,17 @@ export function Builder({
       ...draft,
       uis: draft.uis.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     });
-  const patchService = (id: string, patch: Partial<ServiceDraft>) =>
+  const patchService = (id: string, patch: Partial<ServiceDraft>) => {
+    const services = draft.services.map((item) =>
+      item.id === id ? { ...item, ...patch } : item,
+    );
     onChange({
       ...draft,
-      services: draft.services.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+      services,
+      scheduledJobs:
+        draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers'),
     });
+  };
   const patchUiRole = (id: string, role: UiDraft['role']) => {
     const preset = uiRolePresets[role];
     const current = draft.uis.find((item) => item.id === id);
@@ -222,10 +228,13 @@ export function Builder({
     const rateLimit = repair(draft.rateLimit);
     const queue = repair(draft.queue);
     const fileStorage = repair(draft.fileStorage);
+    const services = draft.services.filter((item) => item.id !== id);
     onChange({
       ...base,
       uis: draft.uis.filter((item) => item.id !== id),
-      services: draft.services.filter((item) => item.id !== id),
+      services,
+      scheduledJobs:
+        draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers'),
       uiServices: draft.uiServices
         .filter((item) => item.uiId !== id)
         .map((item) => ({

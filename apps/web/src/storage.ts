@@ -225,7 +225,6 @@ export class BrowserDraftRepository extends BrowserRepository {
     await this.write(DRAFT_STORE, 'put', { id: record.id, value: record });
   }
   async list(): Promise<readonly DraftRecord[]> {
-    const core = await loadCore();
     return (await this.values<DraftRecord>(DRAFT_STORE))
       .map((entry) => parseDraftRecord(entry.value))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));

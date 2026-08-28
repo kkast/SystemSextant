@@ -128,7 +128,6 @@ describe('browser repositories', () => {
     const repository = new BrowserTemplateRepository(indexedDB, databaseName());
     const config = normalizeArchitectureDraft(completedDraft());
     const dependencies = {
-      id: 'template-1',
       title: 'Browser template',
       now: new Date('2026-01-02T00:00:00.000Z'),
     };
@@ -138,6 +137,20 @@ describe('browser repositories', () => {
       createNamedTemplate(repository, config, { ...dependencies, title: 'Second try' }),
     ).rejects.toThrow(/already saved as “Browser template”/);
     expect((await repository.list())).toHaveLength(1);
+  });
+
+  it('atomically prevents concurrent duplicate template saves', async () => {
+    const repository = new BrowserTemplateRepository(indexedDB, databaseName());
+    const config = normalizeArchitectureDraft(completedDraft());
+    const now = new Date('2026-01-02T00:00:00.000Z');
+    const results = await Promise.allSettled([
+      createNamedTemplate(repository, config, { title: 'First', now }),
+      createNamedTemplate(repository, config, { title: 'Second', now }),
+    ]);
+
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(({ status }) => status === 'rejected')).toHaveLength(1);
+    expect(await repository.list()).toHaveLength(1);
   });
 
   it('restores grouped connections when importing a generated V2 configuration', () => {

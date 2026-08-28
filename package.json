@@ -11,6 +11,8 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter systemsextant dev",
     "dev:web": "pnpm --filter @systemsextant/web dev",
+    "deploy": "pnpm --filter @systemsextant/web run deploy",
+    "whoami": "pnpm --filter @systemsextant/web run whoami",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:watch": "pnpm -r --parallel test:watch",

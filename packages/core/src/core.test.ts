@@ -613,10 +613,11 @@ describe('templates', () => {
       async delete(templateId) { records.delete(templateId); },
     };
     const config = normalizeProjectConfig(baseAnswers);
-    const dependencies = { id: 'template-1', title: 'Example template', now: new Date('2026-08-27T12:00:00.000Z') };
+    const dependencies = { title: 'Example template', now: new Date('2026-08-27T12:00:00.000Z') };
 
     const saved = await createNamedTemplate(repository, config, dependencies);
     expect(saved.metadata.title).toBe('Example template');
+    expect(saved.metadata.id).toBe(`template-${saved.metadata.projectConfigHash}`);
     expect(saved.metadata.description).toBe(config.product.summary);
 
     await expect(

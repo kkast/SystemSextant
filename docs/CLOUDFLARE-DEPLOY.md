@@ -4,12 +4,14 @@ How SystemSextant's browser app (`apps/web`) is deployed to Cloudflare. The app 
 
 ## One-time setup
 
-### 1. Install pnpm (via corepack)
+### 1. Install the repository-pinned pnpm (via corepack)
 
 ```bash
-corepack enable pnpm
-corepack prepare pnpm@latest --activate
+corepack enable
+corepack install
 ```
+
+Corepack reads the root `packageManager` field, keeping deployment on the reviewed pnpm version.
 
 ### 2. Create a scoped API token
 
@@ -24,26 +26,32 @@ Skip KV, R2, Pages, Tail, CI, Observability, Containers permissions unless a fut
 
 ### 3. Authenticate on the deploy machine
 
+Create the ignored local environment file:
+
 ```bash
-export CLOUDFLARE_API_TOKEN="cf_..."
-export CLOUDFLARE_ACCOUNT_ID="efe371304b805a171dd683ccbec576db"
+cp apps/web/.env.example apps/web/.env
 ```
 
-Persist in `~/.bashrc`. The account ID is set explicitly because account-scoped tokens cannot call `/memberships`, which older wrangler versions use for account discovery — providing the ID avoids the `Authentication failed (status: 400) [code: 9106]` error.
+Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in that file. Never commit `.env` or persist the token in shell startup files. For CI, create this short-lived file from the platform's encrypted secret store during the deployment job.
+
+The account ID is set explicitly because account-scoped tokens cannot call `/memberships`, which older wrangler versions use for account discovery — providing the ID avoids the `Authentication failed (status: 400) [code: 9106]` error.
 
 ## Deploying
 
-From the repo root once, then the web app:
+From the repository root:
 
 ```bash
-pnpm install
-pnpm build
-
-cd apps/web
-pnpm exec wrangler deploy
+pnpm install --frozen-lockfile
+pnpm run deploy
 ```
 
-Or use the shortcut: `pnpm deploy` inside `apps/web` (builds, then deploys).
+The deploy command builds the web app, loads `apps/web/.env`, and deploys it. It does not run an identity check.
+
+Check the configured Cloudflare identity separately:
+
+```bash
+pnpm run whoami
+```
 
 Result: `https://web.systemsextant.workers.dev` (worker name `web`, account subdomain `systemsextant`).
 
@@ -68,8 +76,9 @@ Result: `https://web.systemsextant.workers.dev` (worker name `web`, account subd
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Command 'pnpm' not found` | pnpm missing | `corepack enable pnpm` |
-| `Authentication failed (9106)` on deploy, `whoami` works | Token can't call `/memberships` | `export CLOUDFLARE_ACCOUNT_ID=...` |
+| `Command 'pnpm' not found` | pnpm missing | `corepack enable && corepack install` |
+| `Missing apps/web/.env` | Local deployment credentials are not configured | Copy `.env.example` to `.env` and fill both values |
+| `Authentication failed (9106)` on deploy, `whoami` works | Token can't call `/memberships` | Set `CLOUDFLARE_ACCOUNT_ID` in `apps/web/.env` |
 | Deployed URL won't load / TLS handshake failure | workers.dev route disabled for the worker | `"workers_dev": true` in config + redeploy |
 | Wrong URL after renaming worker | Stale config or ran from repo root | Edit `wrangler.jsonc` `name`, deploy from `apps/web` |
 

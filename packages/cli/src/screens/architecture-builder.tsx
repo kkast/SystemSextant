@@ -52,7 +52,15 @@ function patchUi(state: WizardState, index: number, patch: Partial<UiDraft>): Wi
   return { ...state, draft: { ...state.draft, uis: state.draft.uis.map((ui, current) => current === index ? { ...ui, ...patch } : ui) } };
 }
 function patchService(state: WizardState, index: number, patch: Partial<ServiceDraft>): WizardState {
-  return { ...state, draft: { ...state.draft, services: state.draft.services.map((service, current) => current === index ? { ...service, ...patch } : service) } };
+  const services = state.draft.services.map((service, current) => current === index ? { ...service, ...patch } : service);
+  return {
+    ...state,
+    draft: {
+      ...state.draft,
+      services,
+      scheduledJobs: state.draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers'),
+    },
+  };
 }
 function initialState(initialDraft?: ArchitectureDraft): WizardState {
   const draft = initialDraft ?? createArchitectureDraft();
@@ -79,7 +87,7 @@ function questionsFor(state: WizardState): Question[] {
       { id: `ui-${index}-deployment`, kind: 'single', label: `UI ${index + 1}: deployment`, options: ['vercel', 'cloudflare', 'render', 'vps', 'local-only'].map((value) => ({ value, label: value })), value: ui.deployment, apply: (current, value) => patchUi(current, index, { deployment: String(value) as UiDraft['deployment'] }) },
     );
   }
-  questions.push({ id: 'service-count', kind: 'single', label: 'How many backend services does the product need?', help: 'Each service gets its own name, description, runtime, and deployment.', options: state.uiCount === 0 ? countOptions.slice(1) : countOptions, value: state.serviceCount === undefined ? '' : String(state.serviceCount), apply: (current, value) => { const serviceCount = Number(value); return { ...current, serviceCount, draft: { ...current.draft, services: resizeServices(current.draft.services, serviceCount) } }; } });
+  questions.push({ id: 'service-count', kind: 'single', label: 'How many backend services does the product need?', help: 'Each service gets its own name, description, runtime, and deployment.', options: state.uiCount === 0 ? countOptions.slice(1) : countOptions, value: state.serviceCount === undefined ? '' : String(state.serviceCount), apply: (current, value) => { const serviceCount = Number(value); const services = resizeServices(current.draft.services, serviceCount); return { ...current, serviceCount, draft: { ...current.draft, services, scheduledJobs: current.draft.scheduledJobs && services.some(({ runtime }) => runtime === 'cloudflare-workers') } }; } });
   const nextUis = state.draft.uis.filter(({ runtime }) => runtime === 'nextjs');
   for (let index = 0; index < (state.serviceCount ?? 0); index += 1) {
     const service = state.draft.services[index]!;

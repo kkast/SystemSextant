@@ -137,7 +137,6 @@ export function App() {
   const saveTemplate = async (config: ProjectConfigV2, name: string) => {
     const core = await loadCore();
     await core.createNamedTemplate(repositories.templates, config, {
-      id: newId('template'),
       title: name,
       now: new Date(),
     });

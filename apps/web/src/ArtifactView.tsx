@@ -35,7 +35,9 @@ export function ArtifactView({
     }
   };
   const saveTemplate = async () => {
-    if (!config || !templateName.trim()) return;
+    if (!config || !templateName.trim() || busy) return;
+    setBusy(true);
+    setNotice(undefined);
     try {
       await onSaveTemplate(config, templateName);
       setTemplateOpen(false);
@@ -43,6 +45,8 @@ export function ArtifactView({
       setNotice('Template saved locally.');
     } catch (reason) {
       setNotice(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setBusy(false);
     }
   };
   return (
@@ -101,12 +105,17 @@ export function ArtifactView({
             />
           </label>
           <div className="template-name-actions">
-            <button type="submit" className="primary-action compact" disabled={!templateName.trim()}>
-              Save template
+            <button
+              type="submit"
+              className="primary-action compact"
+              disabled={busy || !templateName.trim()}
+            >
+              {busy ? 'Saving…' : 'Save template'}
             </button>
             <button
               type="button"
               className="secondary-action"
+              disabled={busy}
               onClick={() => {
                 setTemplateOpen(false);
                 setTemplateName('');
