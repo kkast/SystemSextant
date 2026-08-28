@@ -1,10 +1,6 @@
-import {
-  normalizeArchitectureDraft,
-  type ArchitectureDraft,
-  type ServiceDraft,
-  type UiDraft,
-} from '@systemsextant/core';
+import type { ArchitectureDraft, ServiceDraft, UiDraft } from '@systemsextant/core';
 import { useMemo, useState } from 'react';
+import { loadCore } from './core.js';
 
 type Section = 'project' | 'components' | 'connections' | 'resources' | 'workflow' | 'review';
 const sections: readonly { id: Section; label: string }[] = [
@@ -250,14 +246,17 @@ export function Builder({
     });
   };
   const generate = () => {
-    try {
-      normalizeArchitectureDraft(draft);
-      setError(undefined);
-      void onGenerate();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
-      setSection('review');
-    }
+    void (async () => {
+      const core = await loadCore();
+      try {
+        core.normalizeArchitectureDraft(draft);
+        setError(undefined);
+        await onGenerate();
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : String(reason));
+        setSection('review');
+      }
+    })();
   };
 
   return (
@@ -956,6 +955,25 @@ export function Builder({
                     </>
                   )}
                 </ResourceEditor>
+                {draft.services.some((service) => service.runtime === 'cloudflare-workers') && (
+                  <article className="editor-card">
+                    <div>
+                      <span className="type-pill resource">Capability</span>
+                      <h2>Periodic scheduled execution</h2>
+                      <p>Cloudflare Workers Cron Triggers run code on a schedule.</p>
+                    </div>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={draft.scheduledJobs}
+                        onChange={(event) =>
+                          onChange({ ...draft, scheduledJobs: event.target.checked })
+                        }
+                      />{' '}
+                      Enable Cron Triggers
+                    </label>
+                  </article>
+                )}
               </div>
             )}
           </EditorSection>

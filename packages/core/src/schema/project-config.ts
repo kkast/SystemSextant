@@ -20,6 +20,7 @@ export const CapabilitySchema = z.enum([
   'authentication',
   'real-time',
   'background-jobs',
+  'scheduled-jobs',
   'file-storage',
   'caching',
   'rate-limiting',
@@ -36,6 +37,7 @@ export const ToolIdSchema = z.enum([
   'cloudflare-cache',
   'cloudflare-ratelimit',
   'cloudflare-queues',
+  'cloudflare-cron',
 ]);
 export type ToolId = z.infer<typeof ToolIdSchema>;
 

@@ -14,7 +14,7 @@ import {
   FrontendSchema,
 } from '../schema/project-config.js';
 
-const InfrastructureSchema = z.enum(['caching', 'rate-limiting', 'background-jobs']);
+const InfrastructureSchema = z.enum(['caching', 'rate-limiting', 'background-jobs', 'scheduled-jobs']);
 const LoginMethodSchema = z.enum(['github', 'email-password', 'magic-link', 'wallet']);
 const RealtimeModeSchema = z.enum(['sse', 'websocket']);
 
@@ -117,6 +117,13 @@ export const QuestionnaireAnswersSchema = z
       context.addIssue({
         code: 'custom',
         message: 'Managed cache, rate limiting, and queues require a backend.',
+        path: ['infrastructure'],
+      });
+    }
+    if (answers.infrastructure.includes('scheduled-jobs') && answers.backend !== 'cloudflare-workers') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Cron Triggers require the Cloudflare Workers backend.',
         path: ['infrastructure'],
       });
     }
@@ -456,7 +463,7 @@ function databaseQuestion(backend: DraftQuestionnaireAnswers['backend']): Single
     },
   ];
   if (backend === 'cloudflare-workers') {
-    options.push({
+    options.unshift({
       value: 'cloudflare-d1',
       label: 'Cloudflare D1',
       description: 'Managed SQLite designed to run with Cloudflare Workers.',
@@ -550,25 +557,34 @@ function dataAccessQuestion(database: QuestionnaireAnswers['database']): SingleS
 }
 
 function fileStorageQuestion(backend: DraftQuestionnaireAnswers['backend']): SingleSelectQuestion {
-  const options: QuestionOption[] = [
-    { value: 'none', label: 'Not needed' },
-    {
-      value: 'supabase-storage',
-      label: 'Supabase Storage',
-      description: 'Managed object storage integrated with Supabase access policies.',
-    },
-  ];
-  if (backend !== 'none') {
+  const options: QuestionOption[] = [];
+  if (backend !== 'none' && backend === 'cloudflare-workers') {
+    options.push({
+      value: 'cloudflare-r2',
+      label: 'Cloudflare R2',
+      description: 'S3-compatible object storage with no internet egress fees, colocated with the selected Workers backend.',
+    });
+  }
+  if (backend !== 'none' && backend !== 'cloudflare-workers') {
     options.push({
       value: 'cloudflare-r2',
       label: 'Cloudflare R2',
       description: 'S3-compatible object storage with no internet egress fees.',
     });
   }
+  options.push({
+    value: 'none',
+    label: 'Not needed',
+  });
+  options.push({
+    value: 'supabase-storage',
+    label: 'Supabase Storage',
+    description: 'Managed object storage integrated with Supabase access policies.',
+  });
   return { id: 'fileStorage', kind: 'single', label: 'File storage', options };
 }
 
-const infrastructureQuestion: MultiSelectQuestion = {
+const infrastructureQuestion = (backend: QuestionnaireAnswers['backend']): MultiSelectQuestion => ({
   id: 'infrastructure',
   kind: 'multi',
   label: 'Managed infrastructure needs',
@@ -589,8 +605,19 @@ const infrastructureQuestion: MultiSelectQuestion = {
       label: 'Message queue / background jobs',
       description: 'Upstash QStash provides delivery, retries, schedules, and queues.',
     },
+    ...(backend === 'cloudflare-workers'
+      ? [
+          {
+            value: 'scheduled-jobs',
+            label: 'Periodic scheduled execution',
+            description:
+              'Cloudflare Workers Cron Triggers run code on a schedule without an incoming request.',
+          },
+        ]
+      : []),
   ],
-};
+});
+
 
 function infrastructureProviderQuestion(
   challenge: 'caching' | 'rate-limiting' | 'background-jobs',
@@ -616,13 +643,7 @@ function infrastructureProviderQuestion(
       cloudflare: 'Cloudflare Queues',
     },
   }[challenge];
-  const options: QuestionOption[] = [
-    {
-      value: 'upstash',
-      label: question.upstash,
-      description: 'Serverless managed infrastructure that works with every supported backend.',
-    },
-  ];
+  const options: QuestionOption[] = [];
   if (backend === 'cloudflare-workers') {
     options.push({
       value: 'cloudflare',
@@ -630,6 +651,11 @@ function infrastructureProviderQuestion(
       description: 'Cloudflare-native infrastructure colocated with the selected Workers backend.',
     });
   }
+  options.push({
+    value: 'upstash',
+    label: question.upstash,
+    description: 'Serverless managed infrastructure that works with every supported backend.',
+  });
   return { id: question.id, kind: 'single', label: question.label, options };
 }
 
@@ -715,8 +741,9 @@ export function getQuestionSequence(answers: DraftQuestionnaireAnswers): Questio
     );
   questions.push(fileStorageQuestion(answers.backend));
   if (answers.backend && answers.backend !== 'none') {
-    questions.push(infrastructureQuestion);
+    questions.push(infrastructureQuestion(answers.backend));
     for (const challenge of answers.infrastructure ?? []) {
+      if (challenge === 'scheduled-jobs') continue; // Cloudflare Cron Triggers need no provider choice.
       questions.push(infrastructureProviderQuestion(challenge, answers.backend));
     }
   }

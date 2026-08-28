@@ -292,6 +292,93 @@ describe('configuration normalization', () => {
     });
   });
 
+  it('offers periodic execution only with the Cloudflare Workers backend', () => {
+    const expressQuestions = getQuestionSequence({
+      frontend: 'nextjs',
+      backend: 'express',
+    }).find(({ id }) => id === 'infrastructure');
+    expect(
+      expressQuestions?.kind === 'multi'
+        ? expressQuestions.options.map(({ value }) => value)
+        : [],
+    ).not.toContain('scheduled-jobs');
+
+    const workersQuestions = getQuestionSequence({
+      frontend: 'nextjs',
+      backend: 'cloudflare-workers',
+    }).find(({ id }) => id === 'infrastructure');
+    expect(
+      workersQuestions?.kind === 'multi'
+        ? workersQuestions.options.map(({ value }) => value)
+        : [],
+    ).toContain('scheduled-jobs');
+
+    expect(() =>
+      normalizeProjectConfig({
+        ...infrastructureAnswers,
+        backend: 'express',
+        backendDeployment: 'render',
+        realtimeModes: [],
+        cacheProvider: undefined,
+        rateLimitProvider: undefined,
+        queueProvider: undefined,
+        infrastructure: ['scheduled-jobs'],
+      }),
+    ).toThrow(/Cron Triggers require the Cloudflare Workers backend/);
+  });
+
+  it('selects cron capability and tool for scheduled execution on Workers', () => {
+    const config = normalizeProjectConfig({
+      ...infrastructureAnswers,
+      infrastructure: ['scheduled-jobs'],
+    });
+
+    expect(config.capabilities).toContain('scheduled-jobs');
+    expect(config.tools).toEqual(['cloudflare-cron']);
+    const compiled = compilePrompt(config);
+    expect(compiled.blockIds).toEqual(
+      expect.arrayContaining(['capability.scheduled-jobs', 'tool.cloudflare.cron']),
+    );
+    expect(compiled.content).toContain('Cron Triggers');
+    expect(compiled.content).toMatchSnapshot();
+  });
+
+  it('round-trips scheduled jobs through the V2 architecture draft', () => {
+    const draft = {
+      projectName: 'Roll worker',
+      productSummary: 'A scheduled worker.',
+      uis: [],
+      services: [
+        { id: 'roll-worker', name: 'Roll worker', runtime: 'cloudflare-workers', deployment: 'cloudflare', description: '' },
+      ],
+      uiServices: [],
+      serviceDependencies: [],
+      scheduledJobs: true,
+      realtimeModes: [],
+      authService: 'none',
+      loginMethods: [],
+      agentMode: 'plan-only',
+    };
+    const config = normalizeArchitectureDraft(draft);
+    expect(config.capabilities).toContain('scheduled-jobs');
+    expect(config.tools).toEqual(['cloudflare-cron']);
+    expect(architectureDraftFromConfig(config)).toMatchObject({ scheduledJobs: true });
+
+    expect(() =>
+      normalizeArchitectureDraft({
+        ...draft,
+        services: [{ id: 's', name: 'S', runtime: 'express', deployment: 'render', description: '' }],
+      }),
+    ).toThrow(/Scheduled jobs require a Cloudflare Workers service/);
+  });
+
+  it('leaves non-cron prompts byte-identical when cron is unselected', () => {
+    const compiled = compilePrompt(normalizeProjectConfig(infrastructureAnswers));
+    expect(compiled.blockIds).not.toContain('capability.scheduled-jobs');
+    expect(compiled.blockIds).not.toContain('tool.cloudflare.cron');
+    expect(compiled.content).not.toContain('Cron Triggers');
+  });
+
   it('maps each Cloudflare Workers infrastructure need to its native tool', () => {
     const config = normalizeProjectConfig({
       ...infrastructureAnswers,

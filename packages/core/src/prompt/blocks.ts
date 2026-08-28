@@ -410,6 +410,18 @@ ${transportRequirements}
 - Emit correlated structured logs and metrics for producer, delivery, attempt, and outcome without leaking payload secrets. Test duplicates, reordering, timeout, partial failure, and replay.`,
   },
   {
+    id: 'capability.scheduled-jobs',
+    order: 1145,
+    applies: hasCapability('scheduled-jobs'),
+    render: () => `### Scheduled execution
+
+- Define each job's schedule, timezone, and purpose explicitly; document what the job does when it fires and what state it must read or write.
+- Treat scheduled context as privileged: the handler must re-load current authorized state at execution time instead of trusting snapshots captured when the schedule was configured.
+- Make each run idempotent and safe to repeat after a timeout, partial failure, or overlapping invocation; define expected behavior when a run starts while the previous one is still active.
+- Bound runtime and resource use per run. Fail safely and observably when a dependency is unavailable instead of silently skipping work.
+- Log job start, outcome, and duration with correlation identifiers, redacting sensitive values. Test schedule firing, overlap, failure, and recovery from a mid-run crash.`,
+  },
+  {
     id: 'capability.file-storage',
     order: 1150,
     applies: hasCapability('file-storage'),
@@ -517,6 +529,18 @@ ${transportRequirements}
 - Validate a versioned message schema before use, make consumers idempotent around side effects, and acknowledge or retry each message according to its durable outcome.
 - Pass identifiers instead of secrets, personal data, or oversized values. Reload current authorized state in the consumer and redact payloads from logs.
 - Use the Worker execution lifecycle correctly and test duplicates, partial batch failure, retry exhaustion, poison messages, and replay.`,
+  },
+  {
+    id: 'tool.cloudflare.cron',
+    order: 1270,
+    applies: (config) => config.tools.includes('cloudflare-cron'),
+    render: () => `### Tool: Cloudflare Workers Cron Triggers
+
+- Configure cron schedules explicitly in the Worker's wrangler configuration and declare a typed scheduled handler separate from the fetch handler.
+- Keep schedule expressions minimal and documented per job; map each schedule to exactly one responsibility and validate that expected fire times match the intended timezone.
+- Do not run privileged work inline beyond the scheduled event budget; keep each run bounded and hand longer work to a queue when the product also selects one.
+- Keep credentials in validated server-only environment variables or Worker secrets, never in schedule metadata or logs.
+- Test scheduled handlers locally with the Workers runtime test APIs, including missed schedules, overlapping runs, handler errors, and cold-start latency expectations.`,
   },
   {
     id: 'agent-mode.plan-only',

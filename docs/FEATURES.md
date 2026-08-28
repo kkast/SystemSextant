@@ -25,6 +25,7 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Map selected infrastructure challenges to Upstash.
 - [x] When Cloudflare Workers is the backend, let each selected infrastructure need use either its Cloudflare-native service or Upstash.
 - [x] Add Cloudflare Cache/KV, Workers Rate Limiting, and Cloudflare Queues as independent tool mappings and prompt blocks.
+- [x] When Cloudflare Workers is the backend, offer periodic scheduled execution via Cloudflare Workers Cron Triggers as an infrastructure need with its own capability and tool prompt block, and list Cloudflare-native options first when the backend is Cloudflare Workers.
 - [x] Select an authentication service, then offer only its compatible login methods.
 - [x] Review and edit answers before generating artifacts.
 - [x] Review generated artifacts after automatic session persistence.
@@ -85,6 +86,8 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Ask for a template-specific name when saving a reusable template and reject duplicate configurations.
 - [x] Prefill preset names and descriptions for UI roles (admin UI, business client, user client, landing page) and backend runtimes (Express backend server, Cloudflare Workers backend).
 - [x] Keep a single generate action for the whole workflow.
+- [x] Keep the first paint lean: the core engine (with its YAML and Zod dependencies) loads on demand after first paint instead of blocking the initial render.
+- [x] Pre-compress built assets with Brotli and gzip so Cloudflare serves them without recompressing.
 - [x] Store browser sessions as validated YAML and metadata, regenerating prompts only when requested.
 - [x] Store browser templates as validated configurations without derived prompt content.
 - [x] Navigate the web workspace sequentially with persistent Previous and Continue controls.

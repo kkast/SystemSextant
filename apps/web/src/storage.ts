@@ -1,19 +1,14 @@
-import {
-  deserializeProjectConfig,
-  generateArtifacts,
-  hashText,
-  parseProjectConfig,
-  parseSessionMetadata,
-  parseTemplateMetadata,
-  type ArchitectureDraft,
-  type ArtifactBundle,
-  type SessionMetadataV1,
-  type SessionRecord,
-  type SessionRepository,
-  type TemplateMetadataV1,
-  type TemplateRecord,
-  type TemplateRepository,
+import type {
+  ArchitectureDraft,
+  ArtifactBundle,
+  SessionMetadataV1,
+  SessionRecord,
+  SessionRepository,
+  TemplateMetadataV1,
+  TemplateRecord,
+  TemplateRepository,
 } from '@systemsextant/core';
+import { loadCore, type Core } from './core.js';
 
 const DATABASE_VERSION = 2;
 const DRAFT_STORE = 'drafts';
@@ -102,7 +97,7 @@ function isObject(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null;
 }
 
-function parseArtifacts(input: unknown): ArtifactBundle {
+function parseArtifacts(core: Core, input: unknown): ArtifactBundle {
   if (!isObject(input)) throw new Error('Stored artifacts are invalid.');
   const { projectYaml, agentPrompt, projectConfigHash, agentPromptHash, promptBlockIds } = input;
   if (
@@ -115,16 +110,19 @@ function parseArtifacts(input: unknown): ArtifactBundle {
   ) {
     throw new Error('Stored artifacts are invalid.');
   }
-  deserializeProjectConfig(projectYaml);
-  if (hashText(projectYaml) !== projectConfigHash || hashText(agentPrompt) !== agentPromptHash)
+  core.deserializeProjectConfig(projectYaml);
+  if (
+    core.hashText(projectYaml) !== projectConfigHash ||
+    core.hashText(agentPrompt) !== agentPromptHash
+  )
     throw new Error('Stored artifact integrity verification failed.');
   return { projectYaml, agentPrompt, projectConfigHash, agentPromptHash, promptBlockIds };
 }
 
-function parseSessionRecord(input: unknown): SessionRecord {
+function parseSessionRecord(core: Core, input: unknown): SessionRecord {
   if (!isObject(input)) throw new Error('Stored session is invalid.');
-  const metadata = parseSessionMetadata(input.metadata);
-  const artifacts = parseArtifacts(input.artifacts);
+  const metadata = core.parseSessionMetadata(input.metadata);
+  const artifacts = parseArtifacts(core, input.artifacts);
   if (
     metadata.projectConfigHash !== artifacts.projectConfigHash ||
     metadata.agentPromptHash !== artifacts.agentPromptHash ||
@@ -135,21 +133,21 @@ function parseSessionRecord(input: unknown): SessionRecord {
   return { metadata, artifacts };
 }
 
-function parseStoredBrowserSession(input: unknown): StoredBrowserSession {
+function parseStoredBrowserSession(core: Core, input: unknown): StoredBrowserSession {
   if (!isObject(input) || typeof input.projectYaml !== 'string')
     throw new Error('Stored browser session is invalid.');
-  const metadata = parseSessionMetadata(input.metadata);
-  deserializeProjectConfig(input.projectYaml);
-  if (hashText(input.projectYaml) !== metadata.projectConfigHash)
+  const metadata = core.parseSessionMetadata(input.metadata);
+  core.deserializeProjectConfig(input.projectYaml);
+  if (core.hashText(input.projectYaml) !== metadata.projectConfigHash)
     throw new Error('Stored project.yaml integrity verification failed.');
   return { metadata, projectYaml: input.projectYaml };
 }
 
-function parseTemplateRecord(input: unknown): TemplateRecord {
+function parseTemplateRecord(core: Core, input: unknown): TemplateRecord {
   if (!isObject(input)) throw new Error('Stored template is invalid.');
-  const metadata = parseTemplateMetadata(input.metadata);
-  const config = parseProjectConfig(input.config);
-  if (generateArtifacts(config).projectConfigHash !== metadata.projectConfigHash)
+  const metadata = core.parseTemplateMetadata(input.metadata);
+  const config = core.parseProjectConfig(input.config);
+  if (core.generateArtifacts(config).projectConfigHash !== metadata.projectConfigHash)
     throw new Error('Stored template integrity verification failed.');
   return { metadata, config };
 }
@@ -227,6 +225,7 @@ export class BrowserDraftRepository extends BrowserRepository {
     await this.write(DRAFT_STORE, 'put', { id: record.id, value: record });
   }
   async list(): Promise<readonly DraftRecord[]> {
+    const core = await loadCore();
     return (await this.values<DraftRecord>(DRAFT_STORE))
       .map((entry) => parseDraftRecord(entry.value))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
@@ -245,7 +244,8 @@ export class BrowserSessionRepository extends BrowserRepository implements Sessi
     super(factory, databaseName);
   }
   async create(record: SessionRecord): Promise<void> {
-    const parsed = parseSessionRecord(record);
+    const core = await loadCore();
+    const parsed = parseSessionRecord(core, record);
     const stored: StoredBrowserSession = {
       metadata: parsed.metadata,
       projectYaml: parsed.artifacts.projectYaml,
@@ -253,17 +253,19 @@ export class BrowserSessionRepository extends BrowserRepository implements Sessi
     await this.write(SESSION_STORE, 'add', { id: parsed.metadata.id, value: stored });
   }
   async list(): Promise<readonly SessionMetadataV1[]> {
+    const core = await loadCore();
     return (await this.values<StoredBrowserSession>(SESSION_STORE))
-      .map((entry) => parseStoredBrowserSession(entry.value).metadata)
+      .map((entry) => parseStoredBrowserSession(core, entry.value).metadata)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }
   async get(sessionId: string): Promise<SessionRecord | undefined> {
     const entry = await this.value<StoredBrowserSession>(SESSION_STORE, sessionId);
     if (!entry) return undefined;
-    const stored = parseStoredBrowserSession(entry.value);
-    const artifacts = generateArtifacts(deserializeProjectConfig(stored.projectYaml));
+    const core = await loadCore();
+    const stored = parseStoredBrowserSession(core, entry.value);
+    const artifacts = core.generateArtifacts(core.deserializeProjectConfig(stored.projectYaml));
     return {
-      metadata: parseSessionMetadata({
+      metadata: core.parseSessionMetadata({
         ...stored.metadata,
         agentPromptHash: artifacts.agentPromptHash,
         promptBlockIds: artifacts.promptBlockIds,
@@ -281,21 +283,26 @@ export class BrowserTemplateRepository extends BrowserRepository implements Temp
     super(factory, databaseName);
   }
   async create(record: TemplateRecord): Promise<void> {
-    const parsed = parseTemplateRecord(record);
+    const core = await loadCore();
+    const parsed = parseTemplateRecord(core, record);
     await this.write(TEMPLATE_STORE, 'add', { id: parsed.metadata.id, value: parsed });
   }
   async update(record: TemplateRecord): Promise<void> {
-    const parsed = parseTemplateRecord(record);
+    const core = await loadCore();
+    const parsed = parseTemplateRecord(core, record);
     await this.write(TEMPLATE_STORE, 'put', { id: parsed.metadata.id, value: parsed });
   }
   async list(): Promise<readonly TemplateMetadataV1[]> {
+    const core = await loadCore();
     return (await this.values<TemplateRecord>(TEMPLATE_STORE))
-      .map((entry) => parseTemplateRecord(entry.value).metadata)
+      .map((entry) => parseTemplateRecord(core, entry.value).metadata)
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }
   async get(templateId: string): Promise<TemplateRecord | undefined> {
     const entry = await this.value<TemplateRecord>(TEMPLATE_STORE, templateId);
-    return entry ? parseTemplateRecord(entry.value) : undefined;
+    if (!entry) return undefined;
+    const core = await loadCore();
+    return parseTemplateRecord(core, entry.value);
   }
   async delete(templateId: string): Promise<void> {
     await this.remove(TEMPLATE_STORE, templateId);

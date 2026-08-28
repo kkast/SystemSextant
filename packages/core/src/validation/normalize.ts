@@ -42,6 +42,8 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     caching: answers.cacheProvider,
     'rate-limiting': answers.rateLimitProvider,
     'background-jobs': answers.queueProvider,
+    // Cron Triggers are the only scheduled-execution tool and are Cloudflare-native.
+    'scheduled-jobs': answers.infrastructure.includes('scheduled-jobs') ? ('cloudflare' as const) : undefined,
   } as const;
   const tools = toolCatalog
     .filter(
@@ -238,6 +240,12 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
     addCapability(serverOwner.id, 'background-jobs');
   }
 
+  if (answers.infrastructure.includes('scheduled-jobs')) {
+    // Cron Triggers are deployment configuration on the Worker itself, so no separate
+    // resource, connection, or component is created; the capability carries the need.
+    addCapability(serverOwner.id, 'scheduled-jobs');
+  }
+
   if (answers.fileStorage !== 'none') {
     resources.push({
       id: 'object-storage',
@@ -348,6 +356,8 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
   if (answers.rateLimitProvider)
     userDecisions.push(['rate-limiting.provider', answers.rateLimitProvider]);
   if (answers.queueProvider) userDecisions.push(['queue.provider', answers.queueProvider]);
+  if (answers.infrastructure.includes('scheduled-jobs'))
+    userDecisions.push(['scheduled-jobs.provider', 'cloudflare']);
   decisions.push(
     ...userDecisions.map(([key, value]) => ({
       key,
