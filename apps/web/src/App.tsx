@@ -5,11 +5,14 @@ import type {
   SessionMetadataV1,
   TemplateMetadataV1,
 } from '@systemsextant/core';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArtifactView } from './ArtifactView.js';
-import { Builder } from './Builder.js';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadCore, preloadCore } from './core.js';
-import { Library } from './Library.js';
+
+const ArtifactView = lazy(() =>
+  import('./ArtifactView.js').then(({ ArtifactView }) => ({ default: ArtifactView })),
+);
+const Builder = lazy(() => import('./Builder.js').then(({ Builder }) => ({ default: Builder })));
+const Library = lazy(() => import('./Library.js').then(({ Library }) => ({ default: Library })));
 import {
   BrowserDraftRepository,
   BrowserSessionRepository,
@@ -66,13 +69,15 @@ export function App() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  // Warm the core chunk (yaml + zod + domain logic) after first paint so the
-  // first generation or library action does not pay the network cost.
+  // Warm the core only when the browser has spare time. The timeout prevents
+  // indefinite deferral while keeping parsing work out of the startup path.
   useEffect(() => {
-    // A short delay keeps the core chunk off the first-paint critical path while
-    // still warming it well before the first generation or library action.
-    const timeout = window.setTimeout(preloadCore, 300);
-    return () => window.clearTimeout(timeout);
+    if ('requestIdleCallback' in window) {
+      const idle = window.requestIdleCallback(preloadCore, { timeout: 2_000 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timeout = globalThis.setTimeout(preloadCore, 2_000);
+    return () => globalThis.clearTimeout(timeout);
   }, []);
   useEffect(() => {
     if (!activeDraft || view !== 'builder') return;
@@ -149,9 +154,7 @@ export function App() {
       setStatus('Only V2 architecture templates can be edited in the browser.');
       return;
     }
-    await beginDraft(
-      await createDraftRecord(core.architectureDraftFromConfig(template.config)),
-    );
+    await beginDraft(await createDraftRecord(core.architectureDraftFromConfig(template.config)));
   };
   const openSession = async (id: string) => {
     const session = await repositories.sessions.get(id);
@@ -326,41 +329,43 @@ export function App() {
             </div>
           </section>
         )}
-        {view === 'builder' && activeDraft && (
-          <Builder
-            draft={activeDraft.draft}
-            savedAt={activeDraft.updatedAt}
-            onChange={(draft) =>
-              setActiveDraft((current) =>
-                current ? { ...current, draft, updatedAt: new Date().toISOString() } : current,
-              )
-            }
-            onGenerate={generate}
-            onExit={() => {
-              setView('home');
-              void refresh();
-            }}
-          />
-        )}
-        {view === 'artifacts' && artifactState && (
-          <ArtifactView
-            title={artifactState.title}
-            artifacts={artifactState.artifacts}
-            {...(artifactState.config ? { config: artifactState.config } : {})}
-            onBack={() => setView(artifactState.config ? 'builder' : 'library')}
-            onSaveTemplate={saveTemplate}
-          />
-        )}
-        {view === 'library' && (
-          <Library
-            sessions={sessions}
-            templates={templates}
-            onOpenSession={(id) => void openSession(id)}
-            onUseTemplate={(id) => void useTemplate(id)}
-            onDeleteSession={(id) => void confirmDelete('session', id)}
-            onDeleteTemplate={(id) => void confirmDelete('template', id)}
-          />
-        )}
+        <Suspense fallback={<p className="global-message message">Loading workspace…</p>}>
+          {view === 'builder' && activeDraft && (
+            <Builder
+              draft={activeDraft.draft}
+              savedAt={activeDraft.updatedAt}
+              onChange={(draft) =>
+                setActiveDraft((current) =>
+                  current ? { ...current, draft, updatedAt: new Date().toISOString() } : current,
+                )
+              }
+              onGenerate={generate}
+              onExit={() => {
+                setView('home');
+                void refresh();
+              }}
+            />
+          )}
+          {view === 'artifacts' && artifactState && (
+            <ArtifactView
+              title={artifactState.title}
+              artifacts={artifactState.artifacts}
+              {...(artifactState.config ? { config: artifactState.config } : {})}
+              onBack={() => setView(artifactState.config ? 'builder' : 'library')}
+              onSaveTemplate={saveTemplate}
+            />
+          )}
+          {view === 'library' && (
+            <Library
+              sessions={sessions}
+              templates={templates}
+              onOpenSession={(id) => void openSession(id)}
+              onUseTemplate={(id) => void useTemplate(id)}
+              onDeleteSession={(id) => void confirmDelete('session', id)}
+              onDeleteTemplate={(id) => void confirmDelete('template', id)}
+            />
+          )}
+        </Suspense>
       </main>
     </div>
   );
