@@ -84,9 +84,4 @@ Result: `https://web.systemsextant.workers.dev` (worker name `web`, account subd
 
 ## Cleanup
 
-Delete the old worker (renamed deployments leave the previous one behind):
-
-```bash
-cd apps/web
-pnpm exec wrangler delete --name systemsextant
-```
+Renaming a deployment does not remove its previous Worker. Delete `systemsextant` only if you owned that earlier deployment. Run `pnpm run whoami`, then verify and remove the old Worker in the Cloudflare dashboard. Never automate destructive cleanup or perform it against an unverified account.
