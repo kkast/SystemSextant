@@ -22,6 +22,61 @@ function nextId(prefix: string, existing: readonly string[]) {
   return `${prefix}-${index}`;
 }
 
+/**
+ * Preset labels, names, and descriptions keep component types self-explanatory. Selecting a role or
+ * runtime replaces only untouched values, so names and descriptions the user wrote are preserved.
+ */
+const uiRolePresets: Readonly<Record<UiDraft['role'], { label: string; name: string; description: string }>> = {
+  admin: {
+    label: 'Admin portal',
+    name: 'Admin UI',
+    description: 'Admin UI for internal operations and management.',
+  },
+  'business-client': {
+    label: 'Business client',
+    name: 'Business client UI',
+    description: 'Interface for business customers and their teams.',
+  },
+  'user-client': {
+    label: 'User client',
+    name: 'User client UI',
+    description: 'Primary interface for end users.',
+  },
+  'landing-page': {
+    label: 'Landing page',
+    name: 'Landing page',
+    description: 'Public marketing and conversion page.',
+  },
+  custom: {
+    label: 'Custom UI',
+    name: 'Custom UI',
+    description: 'Interface with a purpose you describe.',
+  },
+};
+const serviceRuntimePresets: Readonly<Record<'express' | 'cloudflare-workers', { label: string; description: string }>> = {
+  express: { label: 'Express', description: 'Backend server exposing HTTP APIs.' },
+  'cloudflare-workers': {
+    label: 'Cloudflare Workers',
+    description: 'Backend server running on Cloudflare Workers.',
+  },
+};
+const serviceNamePreset = 'Backend server';
+const presetUiNames = new Set(Object.values(uiRolePresets).map((preset) => preset.name));
+const presetUiDescriptions = new Set(Object.values(uiRolePresets).map((preset) => preset.description));
+const presetServiceDescriptions = new Set(Object.values(serviceRuntimePresets).map((preset) => preset.description));
+const untouchedUiName = (name: string) =>
+  !name.trim() || presetUiNames.has(name) || /^UI \d+$/.test(name);
+const untouchedUiDescription = (description: string) =>
+  !description.trim() ||
+  presetUiDescriptions.has(description) ||
+  description === 'Describe this interface, its users, and the outcome it owns.';
+const untouchedServiceName = (name: string) =>
+  !name.trim() || name === serviceNamePreset || /^Service \d+$/.test(name);
+const untouchedServiceDescription = (description: string) =>
+  !description.trim() ||
+  presetServiceDescriptions.has(description) ||
+  description === 'Describe the business capability and operations this service owns.';
+
 function CheckboxGroup({
   values,
   options,
@@ -94,7 +149,7 @@ export function Builder({
   draft: ArchitectureDraft;
   savedAt?: string;
   onChange: (draft: ArchitectureDraft) => void;
-  onGenerate: () => void;
+  onGenerate: () => void | Promise<void>;
   onExit: () => void;
 }) {
   const [section, setSection] = useState<Section>('project');
@@ -125,6 +180,16 @@ export function Builder({
       ...draft,
       services: draft.services.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     });
+  const patchUiRole = (id: string, role: UiDraft['role']) => {
+    const preset = uiRolePresets[role];
+    const current = draft.uis.find((item) => item.id === id);
+    if (!current) return;
+    patchUi(id, {
+      role,
+      ...(untouchedUiName(current.name) ? { name: preset.name } : {}),
+      ...(untouchedUiDescription(current.description) ? { description: preset.description } : {}),
+    });
+  };
 
   const removeComponent = (id: string) => {
     const remaining = ids.filter((candidate) => candidate !== id);
@@ -188,7 +253,7 @@ export function Builder({
     try {
       normalizeArchitectureDraft(draft);
       setError(undefined);
-      onGenerate();
+      void onGenerate();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
       setSection('review');
@@ -222,9 +287,6 @@ export function Builder({
             </button>
           ))}
         </nav>
-        <button className="sidebar-generate" onClick={generate}>
-          Generate artifacts <span>→</span>
-        </button>
       </aside>
       <div className="workspace-main">
         {section === 'project' && (
@@ -273,11 +335,11 @@ export function Builder({
                       ...draft.uis,
                       {
                         id,
-                        name: `UI ${draft.uis.length + 1}`,
+                        name: uiRolePresets.custom.name,
                         role: 'custom',
                         runtime: 'vite-vanilla',
                         deployment: 'cloudflare',
-                        description: 'Describe this interface, its users, and the outcome it owns.',
+                        description: uiRolePresets.custom.description,
                       },
                     ],
                   });
@@ -310,15 +372,13 @@ export function Builder({
                       Role
                       <select
                         value={ui.role}
-                        onChange={(event) =>
-                          patchUi(ui.id, { role: event.target.value as UiDraft['role'] })
-                        }
+                        onChange={(event) => patchUiRole(ui.id, event.target.value as UiDraft['role'])}
                       >
-                        <option value="admin">Admin portal</option>
-                        <option value="business-client">Business client</option>
-                        <option value="user-client">User client</option>
-                        <option value="landing-page">Landing page</option>
-                        <option value="custom">Custom UI</option>
+                        {Object.entries(uiRolePresets).map(([value, preset]) => (
+                          <option value={value} key={value}>
+                            {preset.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label>
@@ -374,11 +434,10 @@ export function Builder({
                       ...draft.services,
                       {
                         id,
-                        name: `Service ${draft.services.length + 1}`,
+                        name: serviceNamePreset,
                         runtime: 'cloudflare-workers',
                         deployment: 'cloudflare',
-                        description:
-                          'Describe the business capability and operations this service owns.',
+                        description: serviceRuntimePresets['cloudflare-workers'].description,
                       },
                     ],
                   });
@@ -417,12 +476,18 @@ export function Builder({
                           const runtime = event.target.value as 'express' | 'cloudflare-workers';
                           patchService(service.id, {
                             runtime,
+                            ...(untouchedServiceDescription(service.description)
+                              ? { description: serviceRuntimePresets[runtime].description }
+                              : {}),
                             deployment: runtime === 'express' ? 'render' : 'cloudflare',
                           });
                         }}
                       >
-                        <option value="cloudflare-workers">Cloudflare Workers</option>
-                        <option value="express">Express</option>
+                        {Object.entries(serviceRuntimePresets).map(([value, preset]) => (
+                          <option value={value} key={value}>
+                            {preset.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label>
@@ -1042,9 +1107,6 @@ export function Builder({
                 </div>
               </dl>
             </article>
-            <button className="primary-action large" onClick={generate}>
-              Generate project artifacts <span>→</span>
-            </button>
           </EditorSection>
         )}
         <nav className="step-navigation" aria-label="Architecture step navigation">

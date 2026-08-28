@@ -1,12 +1,12 @@
 import {
   architectureDraftFromConfig,
   createArchitectureDraft,
-  createCompletedSession,
+  createNamedTemplate,
+  ensureCompletedSession,
   deserializeProjectConfig,
   generateArtifacts,
   isProjectConfigV2,
   normalizeArchitectureDraft,
-  prepareTemplate,
   type ArtifactBundle,
   type ProjectConfigV2,
   type SessionMetadataV1,
@@ -102,35 +102,39 @@ export function App() {
     setStatus(undefined);
     setView('builder');
   };
-  const generate = () => {
+  const generate = async () => {
     if (!activeDraft) return;
+    let config: ProjectConfigV2;
     try {
-      const config = normalizeArchitectureDraft(activeDraft.draft);
-      setArtifactState({ title: config.name, config, artifacts: generateArtifacts(config) });
-      setStatus(undefined);
-      setView('artifacts');
+      config = normalizeArchitectureDraft(activeDraft.draft);
     } catch (reason) {
       setStatus(reason instanceof Error ? reason.message : String(reason));
+      return;
+    }
+    setArtifactState({ title: config.name, config, artifacts: generateArtifacts(config) });
+    setStatus(undefined);
+    setView('artifacts');
+    // The session saves automatically with the generation that produced it.
+    try {
+      await ensureCompletedSession(repositories.sessions, config, {
+        clock: { now: () => new Date() },
+        generatorVersion: '0.1.0-web',
+      });
+      await refresh();
+    } catch (reason) {
+      setStatus(
+        `The session could not be saved automatically: ${
+          reason instanceof Error ? reason.message : String(reason)
+        }`,
+      );
     }
   };
-  const saveSession = async () => {
-    if (!artifactState?.config) return;
-    await createCompletedSession(repositories.sessions, artifactState.config, {
-      clock: { now: () => new Date() },
-      ids: { createSessionId: () => newId('session') },
-      generatorVersion: '0.1.0-web',
+  const saveTemplate = async (config: ProjectConfigV2, name: string) => {
+    await createNamedTemplate(repositories.templates, config, {
+      id: newId('template'),
+      title: name,
+      now: new Date(),
     });
-    await refresh();
-  };
-  const saveTemplate = async (config: ProjectConfigV2) => {
-    await repositories.templates.create(
-      prepareTemplate(config, {
-        id: newId('template'),
-        title: config.name,
-        description: config.product.summary,
-        now: new Date(),
-      }),
-    );
     await refresh();
   };
   const useTemplate = async (id: string) => {
@@ -336,7 +340,6 @@ export function App() {
             artifacts={artifactState.artifacts}
             {...(artifactState.config ? { config: artifactState.config } : {})}
             onBack={() => setView(artifactState.config ? 'builder' : 'library')}
-            onSaveSession={saveSession}
             onSaveTemplate={saveTemplate}
           />
         )}

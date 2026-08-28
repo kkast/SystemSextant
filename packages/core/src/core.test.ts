@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createCompletedSession,
   ensureCompletedSession,
+  createNamedTemplate,
   compilePrompt,
   defaultPromptBlocks,
   deserializeProjectConfig,
@@ -18,6 +19,8 @@ import {
   type PromptBlock,
   type SessionRecord,
   type SessionRepository,
+  type TemplateRecord,
+  type TemplateRepository,
 } from './index.js';
 
 const baseAnswers: QuestionnaireAnswers = {
@@ -511,5 +514,31 @@ describe('templates', () => {
     });
     expect(template.metadata.projectConfigHash).toBe(generateArtifacts(config).projectConfigHash);
     expect(template.config).toEqual(config);
+  });
+
+  it('saves a named template and rejects a duplicate configuration', async () => {
+    const records = new Map<string, TemplateRecord>();
+    const repository: TemplateRepository = {
+      async create(record) { records.set(record.metadata.id, record); },
+      async list() { return [...records.values()].map(({ metadata }) => metadata); },
+      async get(templateId) { return records.get(templateId); },
+      async update(record) { records.set(record.metadata.id, record); },
+      async delete(templateId) { records.delete(templateId); },
+    };
+    const config = normalizeProjectConfig(baseAnswers);
+    const dependencies = { id: 'template-1', title: 'Example template', now: new Date('2026-08-27T12:00:00.000Z') };
+
+    const saved = await createNamedTemplate(repository, config, dependencies);
+    expect(saved.metadata.title).toBe('Example template');
+    expect(saved.metadata.description).toBe(config.product.summary);
+
+    await expect(
+      createNamedTemplate(repository, config, { ...dependencies, title: 'Other name' }),
+    ).rejects.toThrow(/already saved as “Example template”/);
+    expect(records.size).toBe(1);
+
+    await expect(
+      createNamedTemplate(repository, config, { ...dependencies, title: '   ' }),
+    ).rejects.toThrow(/Give the template a name/);
   });
 });

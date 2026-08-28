@@ -81,6 +81,10 @@ This is the single tracker for implemented and potential SystemSextant features.
 
 - [x] Build a browser-native React workspace over the same `core` package.
 - [x] Autosave editable architecture drafts in IndexedDB.
+- [x] Save the completed session automatically when artifacts are generated, with one session per unique configuration.
+- [x] Ask for a template-specific name when saving a reusable template and reject duplicate configurations.
+- [x] Prefill preset names and descriptions for UI roles (admin UI, business client, user client, landing page) and backend runtimes (Express backend server, Cloudflare Workers backend).
+- [x] Keep a single generate action for the whole workflow.
 - [x] Store browser sessions as validated YAML and metadata, regenerating prompts only when requested.
 - [x] Store browser templates as validated configurations without derived prompt content.
 - [x] Navigate the web workspace sequentially with persistent Previous and Continue controls.

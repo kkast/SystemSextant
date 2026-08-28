@@ -53,7 +53,7 @@ architecture draft
 - Normalization expands shortcuts into explicit components, resources, connections, contracts, and confirmed decisions.
 - Zod validates data at each boundary and rejects invalid graph references or duplicate stable IDs.
 - Artifact generation uses stable ordering, excludes timestamps from project artifacts, and hashes the exact stored content.
-- Generation automatically persists one session per unique project-artifact hash. Templates require their own user-provided name and use the project hash for duplicate prevention.
+- Generation automatically persists one session per unique project-artifact hash. Templates require their own user-provided name and use the project hash for duplicate prevention. Both rules run through shared core use cases (`ensureCompletedSession`, `createNamedTemplate`) so the browser and CLI behave identically.
 - Session use cases depend on `SessionRepository`, `Clock`, and `IdGenerator` interfaces so persistence and platform behavior remain replaceable.
 - The CLI repository stages all session files before renaming them into place, then verifies hashes whenever a session is loaded.
 - Browser repositories commit each record in an IndexedDB transaction. Browser sessions persist metadata and validated `project.yaml`, then compile `AGENT_PROMPT.md` from that YAML only when the session is opened. Templates persist validated configurations and never store derived prompts.
