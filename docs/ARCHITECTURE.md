@@ -120,7 +120,7 @@ Product references: [Upstash Redis](https://upstash.com/docs/redis/overall/getst
 | Ink and React                | Model the interactive terminal as composable stateful UI components.               |
 | Commander                    | Supplies the executable contract, help, version, and future command routing.       |
 | `env-paths`                  | Resolves platform-appropriate local application-data storage.                      |
-| `clipboardy`                 | Implements explicit local clipboard actions behind a CLI adapter.                  |
+| `clipboardy`                 | Implements explicit local clipboard actions behind a CLI adapter with an OSC 52 fallback for headless SSH sessions. |
 | `strip-ansi`                 | Prevents stored or entered text from controlling terminal output.                  |
 | esbuild                      | Bundles the CLI entry point while leaving runtime packages external.               |
 | Vitest                       | Covers core rules, prompt snapshots, adapters, and Ink behavior.                   |

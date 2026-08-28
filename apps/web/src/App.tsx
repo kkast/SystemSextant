@@ -195,7 +195,6 @@ export function App() {
             >
               Library <span>{sessions.length + templates.length}</span>
             </button>
-            <span className="local-badge">Local to this browser</span>
           </nav>
         </header>
       )}

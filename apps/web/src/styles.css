@@ -80,13 +80,6 @@ button {
   color: var(--coral);
   font-size: 1.45rem;
 }
-.local-badge {
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 7px 12px;
-  font-size: 0.78rem;
-}
 .topnav {
   display: flex;
   align-items: center;
@@ -921,9 +914,6 @@ dd {
 }
 
 @media (max-width: 720px) {
-  .local-badge {
-    display: none;
-  }
   .home-grid {
     grid-template-columns: 1fr;
   }
