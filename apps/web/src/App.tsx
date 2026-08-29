@@ -25,6 +25,7 @@ interface ArtifactState {
   title: string;
   artifacts: ArtifactBundle;
   config?: ProjectConfigV2;
+  source?: 'library';
 }
 function newId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -162,7 +163,14 @@ export function App() {
       setStatus('That session is no longer available.');
       return;
     }
-    setArtifactState({ title: session.metadata.title, artifacts: session.artifacts });
+    const core = await loadCore();
+    const storedConfig = core.deserializeProjectConfig(session.artifacts.projectYaml);
+    setArtifactState({
+      title: session.metadata.title,
+      artifacts: session.artifacts,
+      ...(core.isProjectConfigV2(storedConfig) ? { config: storedConfig } : {}),
+      source: 'library',
+    });
     setView('artifacts');
   };
   const confirmDelete = async (kind: 'session' | 'template' | 'draft', id: string) => {
@@ -211,7 +219,7 @@ export function App() {
                 aria-current={view === 'library' ? 'page' : undefined}
                 onClick={() => setView('library')}
               >
-                Library <span>{sessions.length + templates.length}</span>
+                Library
               </button>
             </nav>
           </header>
@@ -304,7 +312,6 @@ export function App() {
                     <span className="eyebrow">Library</span>
                     <h2>Saved locally</h2>
                   </div>
-                  <span>{sessions.length + templates.length}</span>
                 </div>
                 <div className="stack">
                   <button
@@ -384,7 +391,8 @@ export function App() {
               title={artifactState.title}
               artifacts={artifactState.artifacts}
               {...(artifactState.config ? { config: artifactState.config } : {})}
-              onBack={() => setView(artifactState.config ? 'builder' : 'library')}
+              backLabel={artifactState.source === 'library' ? 'library' : 'architecture'}
+              onBack={() => setView(artifactState.source === 'library' ? 'library' : 'builder')}
               onSaveTemplate={saveTemplate}
             />
           )}

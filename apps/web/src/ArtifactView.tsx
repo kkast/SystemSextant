@@ -6,12 +6,14 @@ export function ArtifactView({
   title,
   artifacts,
   config,
+  backLabel,
   onBack,
   onSaveTemplate,
 }: {
   title: string;
   artifacts: ArtifactBundle;
   config?: ProjectConfigV2;
+  backLabel: 'architecture' | 'library';
   onBack: () => void;
   onSaveTemplate: (config: ProjectConfigV2, name: string) => Promise<void>;
 }) {
@@ -54,7 +56,7 @@ export function ArtifactView({
       <header className="artifact-header split">
         <div className="stack" data-gap="xs">
           <button className="button" data-variant="ghost" onClick={onBack}>
-            ← Back to {config ? 'architecture' : 'library'}
+            ← Back to {backLabel}
           </button>
           <p className="eyebrow">Generated artifacts</p>
           <h1>{title}</h1>
