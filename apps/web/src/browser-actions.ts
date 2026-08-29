@@ -30,8 +30,18 @@ export function downloadText(
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function downloadArtifacts(title: string, artifacts: ArtifactBundle): void {
+// Browsers silently drop a second programmatic download fired in the same
+// tick as the first; spacing the clicks out keeps both files.
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function downloadArtifacts(
+  title: string,
+  artifacts: ArtifactBundle,
+): Promise<void> {
   const base = safeBaseName(title);
   downloadText(`${base}-project.yaml`, artifacts.projectYaml, 'application/yaml;charset=utf-8');
+  await wait(250);
   downloadText(`${base}-agent-prompt.md`, artifacts.agentPrompt, 'text/markdown;charset=utf-8');
 }

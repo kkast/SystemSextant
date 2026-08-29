@@ -76,7 +76,7 @@ export function ArtifactView({
               Save as template
             </button>
           )}
-          <button className="button" onClick={() => downloadArtifacts(title, artifacts)}>
+          <button className="button" disabled={busy} onClick={() => void downloadArtifacts(title, artifacts)}>
             Download both
           </button>
         </div>
