@@ -1,0 +1,420 @@
+/*
+ * DESIGN SYSTEM
+ *
+ *
+ * CONTRACT FOR APPLICATION-BUILDING AGENTS
+ * 1. Import this file and use its existing vocabulary before writing local CSS.
+ * 2. Use .container for bounded page width.
+ * 3. Use .stack for vertical groups. The parent owns spacing between siblings.
+ * 4. Use .cluster for inline groups that may wrap.
+ * 5. Use .grid for repeated peer items that reduce columns intrinsically.
+ * 6. Use .button, .card, and .field for their named purposes.
+ * 7. Use only the tokens and variants listed below. Do not invent a parallel scale.
+ * 8. Preserve semantic HTML and normal reading order. Do not add JavaScript for layout.
+ * 9. Small feature-local CSS is allowed when composition cannot express a requirement.
+ *    It must use these tokens and must not modify this file.
+ *
+ * AVAILABLE VOCABULARY
+ * Layout: .container, .stack, .cluster, .grid
+ * Stack gaps: default(m), xs, s, l, xl via data-gap
+ * Cluster gaps: default(s), xs, m via data-gap
+ * Grid item sizes: default, small, large via data-item; gaps: default(m), l
+ * Button: .button; variants: primary(default), secondary
+ * Card: .card; optional decoration via data-decoration
+ * AVAILABLE CARD DECORATIONS: orb, lines, dots
+ * ACTIVE CARD DECORATIONS: orb, lines, dots
+ * Field: .field, .field__label, .field__hint, .field__error
+ * Color tokens: --color-canvas, --color-surface, --color-surface-subtle, --color-text,
+ *               --color-text-muted, --color-border, --color-action, --color-action-hover,
+ *               --color-on-action, --color-focus, --color-danger
+ * Spacing tokens: --space-xs, --space-s, --space-m, --space-l, --space-xl
+ * Width/shape tokens: --content-width, --measure, --radius-s, --radius-m, --radius-l
+ * Material tokens: --border-width, --shadow-color, --shadow-y, --shadow-blur,
+ *                  --shadow-spread, --shadow-strength, --decoration-color,
+ *                  --decoration-strength
+ *
+ * COMPOSITION EXAMPLE
+ * <main class="container stack" data-gap="xl">
+ *   <section class="stack" data-gap="m">...</section>
+ *   <div class="grid" data-item="small">...</div>
+ *   <div class="cluster"><a class="button" href="/">Continue</a></div>
+ * </main>
+ *
+ * BLOCK EXAMPLES
+ * <button class="button" type="button">Save</button>
+ * <a class="button" data-variant="secondary" href="/work">View work</a>
+ * <article class="card stack" data-gap="s"><h2>Title</h2><p>Content</p></article>
+ * <div class="field">
+ *   <label class="field__label" for="email">Email</label>
+ *   <input id="email" type="email" aria-describedby="email-hint">
+ *   <small class="field__hint" id="email-hint">Use your work address.</small>
+ * </div>
+ *
+ * VISUAL CHARACTER
+ * Typography: monospace; density: compact; radius: subtle
+ * Surface: tinted; border: crisp; shadow: glow
+ * Contrast: strong; neutral tone: warm; color scheme: light
+ *
+ * This is the source of truth. Design agents update this file directly; application agents follow it.
+ */
+
+@layer reset, tokens, base, layout, blocks;
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html {
+    text-size-adjust: 100%;
+  }
+  body,
+  h1,
+  h2,
+  h3,
+  p,
+  ul,
+  ol,
+  figure,
+  blockquote,
+  dl,
+  dd {
+    margin: 0;
+  }
+  img,
+  picture,
+  svg {
+    display: block;
+    max-inline-size: 100%;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    --color-canvas: #f7f7f2;
+    --color-surface: #fdfdfc;
+    --color-surface-subtle: #edece3;
+    --color-block-surface: #fdfdfc;
+    --color-text: #252418;
+    --color-text-muted: #767460;
+    --color-border: #d2d1c1;
+    --color-component-border: #d2d1c1;
+    --color-action: #0fc76b;
+    --color-action-hover: #0eb762;
+    --color-on-action: #111318;
+    --color-focus: #0fc76b;
+    --color-danger: #b42318;
+    --color-highlight: #ffffff;
+    --color-shade: #6e6d53;
+    --color-action-highlight: #74dfa9;
+    --color-action-shade: #09733e;
+
+    --space-xs: clamp(0.3rem, 0.28rem + 0.1vw, 0.4rem);
+    --space-s: clamp(0.5rem, 0.47rem + 0.15vw, 0.65rem);
+    --space-m: clamp(0.75rem, 0.69rem + 0.25vw, 0.95rem);
+    --space-l: clamp(1rem, 0.88rem + 0.5vw, 1.4rem);
+    --space-xl: clamp(1.5rem, 1.2rem + 1vw, 2.25rem);
+
+    --content-width: 60rem;
+    --measure: 72ch;
+    --item-min: 16rem;
+
+    --radius-s: 0.55rem;
+    --radius-m: 0.85rem;
+    --radius-l: 1.25rem;
+    --radius-control: 0.55rem;
+
+    --font-body: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    --text-sm: 0.75rem;
+    --text-body: 0.875rem;
+    --text-lead: clamp(0.95rem, 0.92rem + 0.15vw, 1.05rem);
+    --text-title: clamp(1.35rem, 1.2rem + 0.6vw, 1.85rem);
+    --text-display: clamp(2rem, 1.6rem + 2vw, 3.75rem);
+    --heading-tracking: -0.035em;
+
+    --control-size: 2.25rem;
+    --border-width: 0px;
+    --shadow-color: #000000;
+    --shadow-y: 8px;
+    --shadow-blur: 24px;
+    --shadow-spread: 0px;
+    --shadow-strength: 14%;
+    --decoration-color: var(--color-action);
+    --decoration-strength: 18%;
+    --shadow-card: 0 var(--shadow-y) var(--shadow-blur) var(--shadow-spread)
+      color-mix(in srgb, var(--shadow-color) var(--shadow-strength), transparent);
+    --shadow-control: 0 calc(var(--shadow-y) / 3) calc(var(--shadow-blur) / 2) var(--shadow-spread)
+      color-mix(in srgb, var(--shadow-color) var(--shadow-strength), transparent);
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+  }
+
+  body {
+    min-block-size: 100vh;
+    background: var(--color-canvas);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: 1.55;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.08;
+    letter-spacing: var(--heading-tracking);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-display);
+  }
+  h2 {
+    font-size: var(--text-title);
+  }
+  h3 {
+    font-size: 0.95rem;
+  }
+  p {
+    max-inline-size: var(--measure);
+  }
+  small {
+    color: var(--color-text-muted);
+  }
+  a {
+    color: inherit;
+  }
+
+  ::selection {
+    background: var(--color-action);
+    color: var(--color-on-action);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+}
+
+@layer layout {
+  .container {
+    --container-gutter: var(--space-xl);
+    inline-size: min(calc(100% - (2 * var(--container-gutter))), var(--content-width));
+    margin-inline: auto;
+  }
+
+  .stack {
+    --stack-gap: var(--space-m);
+    display: flex;
+    flex-direction: column;
+    gap: var(--stack-gap);
+  }
+
+  .stack[data-gap='xs'] {
+    --stack-gap: var(--space-xs);
+  }
+  .stack[data-gap='s'] {
+    --stack-gap: var(--space-s);
+  }
+  .stack[data-gap='l'] {
+    --stack-gap: var(--space-l);
+  }
+  .stack[data-gap='xl'] {
+    --stack-gap: var(--space-xl);
+  }
+
+  .cluster {
+    --cluster-gap: var(--space-s);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cluster-gap);
+  }
+
+  .cluster[data-gap='xs'] {
+    --cluster-gap: var(--space-xs);
+  }
+  .cluster[data-gap='m'] {
+    --cluster-gap: var(--space-m);
+  }
+
+  .grid {
+    --grid-gap: var(--space-m);
+    --grid-item-min: var(--item-min);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-item-min)), 1fr));
+    gap: var(--grid-gap);
+  }
+
+  .grid[data-gap='l'] {
+    --grid-gap: var(--space-l);
+  }
+  .grid[data-item='small'] {
+    --grid-item-min: 12rem;
+  }
+  .grid[data-item='large'] {
+    --grid-item-min: 21rem;
+  }
+}
+
+@layer blocks {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--control-size);
+    max-inline-size: 100%;
+    padding: 0.65em var(--space-m);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-control);
+    background: var(--color-action);
+    color: var(--color-on-action);
+    box-shadow: var(--shadow-control);
+    text-decoration: none;
+    text-align: center;
+    font-weight: 700;
+    line-height: 1.15;
+    cursor: pointer;
+  }
+
+  .button:hover {
+    background: var(--color-action-hover);
+  }
+  .button:active:not(:disabled) {
+    translate: 0 1px;
+  }
+
+  .button[data-variant='secondary'] {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-component-border);
+  }
+
+  .button[data-variant='secondary']:hover {
+    background: var(--color-surface-subtle);
+  }
+
+  .button:disabled,
+  .button[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: var(--space-m);
+    border: var(--border-width) solid var(--color-component-border);
+    border-radius: var(--radius-m);
+    background: var(--color-block-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .card[data-decoration] > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .card[data-decoration]::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .card[data-decoration='orb']::before {
+    inline-size: min(11rem, 58%);
+    aspect-ratio: 1;
+    inset: auto -2.5rem -4.5rem auto;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--decoration-color) var(--decoration-strength), transparent);
+    box-shadow: 0 0 3rem
+      color-mix(in srgb, var(--decoration-color) var(--decoration-strength), transparent);
+  }
+
+  .card[data-decoration='lines']::before {
+    inset: 0;
+    background: repeating-linear-gradient(
+      -35deg,
+      transparent 0 0.7rem,
+      color-mix(in srgb, var(--decoration-color) var(--decoration-strength), transparent) 0.7rem
+        0.76rem
+    );
+    -webkit-mask-image: linear-gradient(to left, black, transparent 72%);
+    mask-image: linear-gradient(to left, black, transparent 72%);
+  }
+
+  .card[data-decoration='dots']::before {
+    inset: 0;
+    background-image: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--decoration-color) var(--decoration-strength), transparent) 1.2px,
+      transparent 1.4px
+    );
+    background-size: 0.75rem 0.75rem;
+    -webkit-mask-image: radial-gradient(circle at 85% 85%, black, transparent 62%);
+    mask-image: radial-gradient(circle at 85% 85%, black, transparent 62%);
+  }
+
+  .field {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .field__label {
+    font-weight: 700;
+  }
+  .field__hint {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+  .field__error {
+    color: var(--color-danger);
+    font-size: var(--text-sm);
+  }
+
+  .field :is(input, select, textarea) {
+    inline-size: 100%;
+    min-block-size: var(--control-size);
+    padding: 0.7em 0.85em;
+    border: var(--border-width) solid var(--color-component-border);
+    border-radius: var(--radius-s);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-control);
+  }
+
+  .field textarea {
+    min-block-size: 7rem;
+    resize: vertical;
+  }
+
+  .field :is(input, select, textarea)::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .field :is(input, select, textarea)[aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+
+  .field :is(input, select, textarea):disabled {
+    background: var(--color-surface-subtle);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+  }
+}
