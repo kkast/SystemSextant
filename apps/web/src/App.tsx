@@ -186,51 +186,61 @@ export function App() {
   return (
     <div className="app-shell">
       {view !== 'builder' && (
-        <header className="topbar">
-          <button
-            className="brand button-reset"
-            onClick={() => setView('home')}
-            aria-label="SystemSextant home"
-          >
-            <span className="brand-mark" aria-hidden="true">
-              ✦
-            </span>
-            <span>SystemSextant</span>
-          </button>
-          <nav className="topnav" aria-label="Main navigation">
-            <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>
-              Home
-            </button>
+        <div className="container">
+          <header className="topbar">
             <button
-              className={view === 'library' ? 'active' : ''}
-              onClick={() => setView('library')}
+              className="brand"
+              onClick={() => setView('home')}
+              aria-label="SystemSextant home"
             >
-              Library <span>{sessions.length + templates.length}</span>
+              <span className="brand-mark" aria-hidden="true">
+                ✦
+              </span>
+              <span>SystemSextant</span>
             </button>
-          </nav>
-        </header>
+            <nav className="topnav" aria-label="Main navigation">
+              <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>
+                Home
+              </button>
+              <button
+                className={view === 'library' ? 'active' : ''}
+                onClick={() => setView('library')}
+              >
+                Library <span>{sessions.length + templates.length}</span>
+              </button>
+            </nav>
+          </header>
+        </div>
       )}
       <main>
         {status && view !== 'builder' && (
-          <div className="global-message message" role="status">
-            {status}
-            <button onClick={() => setStatus(undefined)}>Dismiss</button>
+          <div className="container">
+            <div className="global-message message" role="status">
+              {status}
+              <button className="text-action" onClick={() => setStatus(undefined)}>
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
         {view === 'home' && (
-          <section className="home">
-            <div className="hero-copy">
+          <section className="container home stack" data-gap="xl">
+            <div className="stack hero-copy" data-gap="m">
               <p className="eyebrow">Architecture, with bearings</p>
               <h1>Turn a product idea into a system an agent can build.</h1>
               <p className="lede">
                 Shape components, connections, and infrastructure in a visual workspace. Generate
                 deterministic project instructions without sending your work anywhere.
               </p>
-              <div className="hero-actions">
-                <button className="primary-action" onClick={() => void beginDraft()}>
+              <div className="grid" data-gap="m">
+                <button className="button" onClick={() => void beginDraft()}>
                   Start an architecture <span>→</span>
                 </button>
-                <button className="secondary-action" onClick={() => importInput.current?.click()}>
+                <button
+                  className="button"
+                  data-variant="secondary"
+                  onClick={() => importInput.current?.click()}
+                >
                   Import project.yaml
                 </button>
                 <input
@@ -246,19 +256,19 @@ export function App() {
                 />
               </div>
             </div>
-            <div className="dashboard-grid">
-              <section className="dashboard-panel recent-panel">
+            <div className="grid" data-gap="l">
+              <section className="dashboard-panel recent-panel card stack" data-decoration="orb">
                 <div className="panel-heading">
-                  <div>
-                    <span className="card-number">Drafts</span>
+                  <div className="stack" data-gap="xs">
+                    <span className="eyebrow">Drafts</span>
                     <h2>Continue where you left off</h2>
                   </div>
                   <span>{drafts.length}</span>
                 </div>
                 {drafts.length === 0 ? (
-                  <p className="panel-empty">Your autosaved drafts will appear here.</p>
+                  <p className="muted">Your autosaved drafts will appear here.</p>
                 ) : (
-                  <div className="recent-list">
+                  <div className="recent-list stack" data-gap="xs">
                     {drafts.slice(0, 4).map((record) => (
                       <article key={record.id}>
                         <button onClick={() => void continueDraft(record.id)}>
@@ -279,49 +289,60 @@ export function App() {
                   </div>
                 )}
               </section>
-              <section className="dashboard-panel library-summary">
+              <section
+                className="dashboard-panel library-summary card stack"
+                data-decoration="dots"
+              >
                 <div className="panel-heading">
-                  <div>
-                    <span className="card-number">Library</span>
+                  <div className="stack" data-gap="xs">
+                    <span className="eyebrow">Library</span>
                     <h2>Saved locally</h2>
                   </div>
                   <span>{sessions.length + templates.length}</span>
                 </div>
                 <div className="summary-counts">
-                  <button onClick={() => setView('library')}>
+                  <button
+                    className="button"
+                    data-variant="secondary"
+                    onClick={() => setView('library')}
+                  >
                     <strong>{sessions.length}</strong>
                     <span>Completed sessions</span>
                   </button>
-                  <button onClick={() => setView('library')}>
+                  <button
+                    className="button"
+                    data-variant="secondary"
+                    onClick={() => setView('library')}
+                  >
                     <strong>{templates.length}</strong>
                     <span>Reusable templates</span>
                   </button>
                 </div>
               </section>
             </div>
-            <div className="home-grid">
-              <article className="feature-card accent-card">
-                <span className="card-number">01</span>
+            <div className="grid feature-grid">
+              <article className="feature-card card stack" data-decoration="lines">
+                <span className="eyebrow">01</span>
                 <h2>Build visually</h2>
-                <p>
+                <p className="muted">
                   Add named interfaces and services, then map relationships without stepping through
                   a terminal questionnaire.
                 </p>
               </article>
-              <article className="feature-card">
-                <span className="card-number">02</span>
+              <article className="feature-card card stack" data-decoration="dots">
+                <span className="eyebrow">02</span>
                 <h2>Generate locally</h2>
-                <p>
+                <p className="muted">
                   The browser uses the same deterministic core as the CLI. No model call, account,
                   or telemetry is involved.
                 </p>
               </article>
-              <article className="feature-card wide-card">
-                <div>
-                  <span className="card-number">03</span>
+              <article className="feature-card card stack" data-decoration="orb">
+                <div className="stack" data-gap="xs">
+                  <span className="eyebrow">03</span>
                   <h2>Keep both artifacts</h2>
                 </div>
-                <p>
+                <p className="muted">
                   Review, copy, and download project.yaml and AGENT_PROMPT.md whenever you need
                   them.
                 </p>
@@ -329,7 +350,13 @@ export function App() {
             </div>
           </section>
         )}
-        <Suspense fallback={<p className="global-message message">Loading workspace…</p>}>
+        <Suspense
+          fallback={
+            <div className="container">
+              <p className="global-message message">Loading workspace…</p>
+            </div>
+          }
+        >
           {view === 'builder' && activeDraft && (
             <Builder
               draft={activeDraft.draft}

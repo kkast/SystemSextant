@@ -24,17 +24,17 @@ export function Library({
     [items, query],
   );
   return (
-    <section className="library-page">
+    <section className="container library-page stack" data-gap="m">
       <div className="library-heading">
-        <div>
+        <div className="stack" data-gap="xs">
           <p className="eyebrow">Local library</p>
           <h1>Return to your work</h1>
           <p className="lede">
             Sessions and templates stay in this browser and are never uploaded.
           </p>
         </div>
-        <label className="search-field">
-          Search
+        <label className="field search-field">
+          <span className="field__label">Search</span>
           <input
             type="search"
             value={query}
@@ -62,9 +62,9 @@ export function Library({
         </button>
       </div>
       {filtered.length === 0 ? (
-        <div className="library-empty">
+        <div className="library-empty stack" data-gap="s">
           <h2>No {tab} found</h2>
-          <p>
+          <p className="muted">
             {query
               ? 'Try a different search.'
               : tab === 'sessions'
@@ -73,14 +73,14 @@ export function Library({
           </p>
         </div>
       ) : (
-        <div className="library-grid">
+        <div className="library-grid grid">
           {tab === 'sessions'
             ? (filtered as SessionMetadataV1[]).map((item) => (
-                <article className="library-card" key={item.id}>
-                  <div>
+                <article className="library-card card stack" data-gap="m" key={item.id}>
+                  <div className="stack" data-gap="s">
                     <span className="type-pill">Session</span>
                     <h2>{item.title}</h2>
-                    <p>{new Date(item.createdAt).toLocaleString()}</p>
+                    <p className="muted">{new Date(item.createdAt).toLocaleString()}</p>
                   </div>
                   <dl>
                     <div>
@@ -93,7 +93,11 @@ export function Library({
                     </div>
                   </dl>
                   <div className="card-actions">
-                    <button className="secondary-action" onClick={() => onOpenSession(item.id)}>
+                    <button
+                      className="button"
+                      data-variant="secondary"
+                      onClick={() => onOpenSession(item.id)}
+                    >
                       Open
                     </button>
                     <button className="danger-link" onClick={() => onDeleteSession(item.id)}>
@@ -103,14 +107,20 @@ export function Library({
                 </article>
               ))
             : (filtered as TemplateMetadataV1[]).map((item) => (
-                <article className="library-card" key={item.id}>
-                  <div>
+                <article className="library-card card stack" data-gap="m" key={item.id}>
+                  <div className="stack" data-gap="s">
                     <span className="type-pill resource">Template</span>
                     <h2>{item.title}</h2>
-                    <p>{item.description || 'Reusable architecture configuration'}</p>
+                    <p className="muted">
+                      {item.description || 'Reusable architecture configuration'}
+                    </p>
                   </div>
                   <div className="card-actions">
-                    <button className="secondary-action" onClick={() => onUseTemplate(item.id)}>
+                    <button
+                      className="button"
+                      data-variant="secondary"
+                      onClick={() => onUseTemplate(item.id)}
+                    >
                       Use template
                     </button>
                     <button className="danger-link" onClick={() => onDeleteTemplate(item.id)}>

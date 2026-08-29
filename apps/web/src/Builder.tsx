@@ -22,7 +22,9 @@ function nextId(prefix: string, existing: readonly string[]) {
  * Preset labels, names, and descriptions keep component types self-explanatory. Selecting a role or
  * runtime replaces only untouched values, so names and descriptions the user wrote are preserved.
  */
-const uiRolePresets: Readonly<Record<UiDraft['role'], { label: string; name: string; description: string }>> = {
+const uiRolePresets: Readonly<
+  Record<UiDraft['role'], { label: string; name: string; description: string }>
+> = {
   admin: {
     label: 'Admin portal',
     name: 'Admin UI',
@@ -49,7 +51,9 @@ const uiRolePresets: Readonly<Record<UiDraft['role'], { label: string; name: str
     description: 'Interface with a purpose you describe.',
   },
 };
-const serviceRuntimePresets: Readonly<Record<'express' | 'cloudflare-workers', { label: string; description: string }>> = {
+const serviceRuntimePresets: Readonly<
+  Record<'express' | 'cloudflare-workers', { label: string; description: string }>
+> = {
   express: { label: 'Express', description: 'Backend server exposing HTTP APIs.' },
   'cloudflare-workers': {
     label: 'Cloudflare Workers',
@@ -58,8 +62,12 @@ const serviceRuntimePresets: Readonly<Record<'express' | 'cloudflare-workers', {
 };
 const serviceNamePreset = 'Backend server';
 const presetUiNames = new Set(Object.values(uiRolePresets).map((preset) => preset.name));
-const presetUiDescriptions = new Set(Object.values(uiRolePresets).map((preset) => preset.description));
-const presetServiceDescriptions = new Set(Object.values(serviceRuntimePresets).map((preset) => preset.description));
+const presetUiDescriptions = new Set(
+  Object.values(uiRolePresets).map((preset) => preset.description),
+);
+const presetServiceDescriptions = new Set(
+  Object.values(serviceRuntimePresets).map((preset) => preset.description),
+);
 const untouchedUiName = (name: string) =>
   !name.trim() || presetUiNames.has(name) || /^UI \d+$/.test(name);
 const untouchedUiDescription = (description: string) =>
@@ -123,11 +131,13 @@ function EditorSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="editor-section">
+    <div className="editor-section stack" data-gap="l">
       <p className="eyebrow">{eyebrow}</p>
       <h1>{title}</h1>
       <p className="lede">{description}</p>
-      <div className="editor-content">{children}</div>
+      <div className="editor-content stack" data-gap="l">
+        {children}
+      </div>
     </div>
   );
 }
@@ -172,9 +182,7 @@ export function Builder({
       uis: draft.uis.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     });
   const patchService = (id: string, patch: Partial<ServiceDraft>) => {
-    const services = draft.services.map((item) =>
-      item.id === id ? { ...item, ...patch } : item,
-    );
+    const services = draft.services.map((item) => (item.id === id ? { ...item, ...patch } : item));
     onChange({
       ...draft,
       services,
@@ -303,8 +311,8 @@ export function Builder({
             title="Describe what you are building"
             description="Give the architecture a stable name and enough context for the receiving coding agent."
           >
-            <label>
-              Project name
+            <label className="field">
+              <span className="field__label">Project name</span>
               <input
                 value={draft.projectName}
                 maxLength={100}
@@ -312,8 +320,8 @@ export function Builder({
                 onChange={(event) => onChange({ ...draft, projectName: event.target.value })}
               />
             </label>
-            <label>
-              Product summary
+            <label className="field">
+              <span className="field__label">Product summary</span>
               <textarea
                 rows={6}
                 maxLength={2000}
@@ -334,7 +342,8 @@ export function Builder({
             <div className="section-toolbar">
               <h2>Interfaces</h2>
               <button
-                className="secondary-action"
+                className="button"
+                data-variant="secondary"
                 onClick={() => {
                   const id = nextId('ui', ids);
                   onChange({
@@ -356,31 +365,33 @@ export function Builder({
                 + Add interface
               </button>
             </div>
-            <div className="card-stack">
+            <div className="card-stack stack" data-gap="m">
               {draft.uis.length === 0 && (
                 <EmptyState>Backend-only architectures can leave interfaces empty.</EmptyState>
               )}
               {draft.uis.map((ui) => (
-                <article className="editor-card" key={ui.id}>
+                <article className="card stack" data-gap="m" key={ui.id}>
                   <div className="card-header">
                     <span className="type-pill">UI · {ui.id}</span>
                     <button className="danger-link" onClick={() => removeComponent(ui.id)}>
                       Remove
                     </button>
                   </div>
-                  <div className="form-grid two-column">
-                    <label>
-                      Name
+                  <div className="form-grid two-column grid">
+                    <label className="field">
+                      <span className="field__label">Name</span>
                       <input
                         value={ui.name}
                         onChange={(event) => patchUi(ui.id, { name: event.target.value })}
                       />
                     </label>
-                    <label>
-                      Role
+                    <label className="field">
+                      <span className="field__label">Role</span>
                       <select
                         value={ui.role}
-                        onChange={(event) => patchUiRole(ui.id, event.target.value as UiDraft['role'])}
+                        onChange={(event) =>
+                          patchUiRole(ui.id, event.target.value as UiDraft['role'])
+                        }
                       >
                         {Object.entries(uiRolePresets).map(([value, preset]) => (
                           <option value={value} key={value}>
@@ -389,8 +400,8 @@ export function Builder({
                         ))}
                       </select>
                     </label>
-                    <label>
-                      Runtime
+                    <label className="field">
+                      <span className="field__label">Runtime</span>
                       <select
                         value={ui.runtime}
                         onChange={(event) =>
@@ -401,8 +412,8 @@ export function Builder({
                         <option value="nextjs">Next.js</option>
                       </select>
                     </label>
-                    <label>
-                      Deployment
+                    <label className="field">
+                      <span className="field__label">Deployment</span>
                       <select
                         value={ui.deployment}
                         onChange={(event) =>
@@ -419,8 +430,8 @@ export function Builder({
                       </select>
                     </label>
                   </div>
-                  <label>
-                    Description
+                  <label className="field">
+                    <span className="field__label">Description</span>
                     <textarea
                       rows={3}
                       value={ui.description}
@@ -433,7 +444,8 @@ export function Builder({
             <div className="section-toolbar spaced">
               <h2>Services</h2>
               <button
-                className="secondary-action"
+                className="button"
+                data-variant="secondary"
                 onClick={() => {
                   const id = nextId('service', ids);
                   onChange({
@@ -454,30 +466,30 @@ export function Builder({
                 + Add service
               </button>
             </div>
-            <div className="card-stack">
+            <div className="card-stack stack" data-gap="m">
               {draft.services.length === 0 && (
                 <EmptyState>
                   Static interface-only architectures can leave services empty.
                 </EmptyState>
               )}
               {draft.services.map((service) => (
-                <article className="editor-card" key={service.id}>
+                <article className="card stack" data-gap="m" key={service.id}>
                   <div className="card-header">
                     <span className="type-pill service">Service · {service.id}</span>
                     <button className="danger-link" onClick={() => removeComponent(service.id)}>
                       Remove
                     </button>
                   </div>
-                  <div className="form-grid two-column">
-                    <label>
-                      Name
+                  <div className="form-grid two-column grid">
+                    <label className="field">
+                      <span className="field__label">Name</span>
                       <input
                         value={service.name}
                         onChange={(event) => patchService(service.id, { name: event.target.value })}
                       />
                     </label>
-                    <label>
-                      Runtime
+                    <label className="field">
+                      <span className="field__label">Runtime</span>
                       <select
                         value={service.runtime}
                         onChange={(event) => {
@@ -498,8 +510,8 @@ export function Builder({
                         ))}
                       </select>
                     </label>
-                    <label>
-                      Deployment
+                    <label className="field">
+                      <span className="field__label">Deployment</span>
                       <select
                         value={service.deployment}
                         onChange={(event) =>
@@ -523,8 +535,8 @@ export function Builder({
                       </select>
                     </label>
                   </div>
-                  <label>
-                    Description
+                  <label className="field">
+                    <span className="field__label">Description</span>
                     <textarea
                       rows={3}
                       value={service.description}
@@ -545,10 +557,10 @@ export function Builder({
             title="Show how components communicate"
             description="Toggle component calls and any real-time transports the system needs."
           >
-            <div className="connection-list">
+            <div className="connection-list stack" data-gap="m">
               {draft.uis.map((ui) => (
-                <article className="connection-row" key={ui.id}>
-                  <div>
+                <article className="connection-row card" key={ui.id}>
+                  <div className="stack" data-gap="xs">
                     <span className="type-pill">UI</span>
                     <h2>{ui.name}</h2>
                     <p>{ui.description}</p>
@@ -570,8 +582,8 @@ export function Builder({
                 </article>
               ))}
               {draft.services.map((service) => (
-                <article className="connection-row" key={service.id}>
-                  <div>
+                <article className="connection-row card" key={service.id}>
+                  <div className="stack" data-gap="xs">
                     <span className="type-pill service">Service</span>
                     <h2>{service.name}</h2>
                     <p>{service.description}</p>
@@ -603,8 +615,8 @@ export function Builder({
                 <EmptyState>Add components before mapping connections.</EmptyState>
               )}
             </div>
-            <article className="editor-card capability-card">
-              <div>
+            <article className="card capability-card">
+              <div className="stack" data-gap="xs">
                 <span className="type-pill resource">Capability</span>
                 <h2>Real-time communication</h2>
                 <p>Select the transports the services must support.</p>
@@ -638,7 +650,7 @@ export function Builder({
             {components.length === 0 ? (
               <EmptyState>Add a component before configuring resources.</EmptyState>
             ) : (
-              <div className="card-stack">
+              <div className="card-stack stack" data-gap="m">
                 <ResourceEditor
                   title="Database"
                   enabled={Boolean(draft.database)}
@@ -660,9 +672,9 @@ export function Builder({
                 >
                   {draft.database && (
                     <>
-                      <div className="form-grid three-column">
-                        <label>
-                          Database
+                      <div className="form-grid three-column grid">
+                        <label className="field">
+                          <span className="field__label">Database</span>
                           <select
                             value={draft.database.type}
                             onChange={(event) => {
@@ -695,8 +707,8 @@ export function Builder({
                             <option value="cloudflare-d1">Cloudflare D1</option>
                           </select>
                         </label>
-                        <label>
-                          Provider
+                        <label className="field">
+                          <span className="field__label">Provider</span>
                           <select
                             value={draft.database.provider}
                             onChange={(event) =>
@@ -723,8 +735,8 @@ export function Builder({
                             )}
                           </select>
                         </label>
-                        <label>
-                          Data access
+                        <label className="field">
+                          <span className="field__label">Data access</span>
                           <select
                             value={draft.database.dataAccess}
                             onChange={(event) =>
@@ -787,8 +799,8 @@ export function Builder({
                 >
                   {draft.cache && (
                     <>
-                      <label>
-                        Provider
+                      <label className="field">
+                        <span className="field__label">Provider</span>
                         <select
                           value={draft.cache.provider}
                           onChange={(event) =>
@@ -836,8 +848,8 @@ export function Builder({
                 >
                   {draft.rateLimit && (
                     <>
-                      <label>
-                        Provider
+                      <label className="field">
+                        <span className="field__label">Provider</span>
                         <select
                           value={draft.rateLimit.provider}
                           onChange={(event) =>
@@ -885,8 +897,8 @@ export function Builder({
                 >
                   {draft.queue && (
                     <>
-                      <label>
-                        Provider
+                      <label className="field">
+                        <span className="field__label">Provider</span>
                         <select
                           value={draft.queue.provider}
                           onChange={(event) =>
@@ -934,8 +946,8 @@ export function Builder({
                 >
                   {draft.fileStorage && (
                     <>
-                      <label>
-                        Provider
+                      <label className="field">
+                        <span className="field__label">Provider</span>
                         <select
                           value={draft.fileStorage.provider}
                           onChange={(event) =>
@@ -965,13 +977,13 @@ export function Builder({
                   )}
                 </ResourceEditor>
                 {draft.services.some((service) => service.runtime === 'cloudflare-workers') && (
-                  <article className="editor-card">
-                    <div>
+                  <article className="card stack" data-gap="m">
+                    <div className="stack" data-gap="xs">
                       <span className="type-pill resource">Capability</span>
                       <h2>Periodic scheduled execution</h2>
                       <p>Cloudflare Workers Cron Triggers run code on a schedule.</p>
                     </div>
-                    <label>
+                    <label className="check-row">
                       <input
                         type="checkbox"
                         checked={draft.scheduledJobs}
@@ -994,13 +1006,13 @@ export function Builder({
             title="Set access and execution guidance"
             description="Authentication becomes a product capability; agent mode controls how the receiving coding agent works."
           >
-            <article className="editor-card auth-card">
-              <div>
+            <article className="card auth-card">
+              <div className="stack" data-gap="xs">
                 <span className="type-pill resource">Access</span>
                 <h2>Authentication</h2>
               </div>
-              <label>
-                Service
+              <label className="field">
+                <span className="field__label">Service</span>
                 <select
                   value={draft.authService}
                   onChange={(event) =>
@@ -1040,8 +1052,8 @@ export function Builder({
                 />
               )}
             </article>
-            <h2 className="subsection-title">Coding agent mode</h2>
-            <div className="mode-grid">
+            <h2>Coding agent mode</h2>
+            <div className="mode-grid grid" data-item="large">
               {(
                 [
                   [
@@ -1062,7 +1074,9 @@ export function Builder({
                 ] as const
               ).map(([value, label, description]) => (
                 <label
-                  className={draft.agentMode === value ? 'mode-card selected' : 'mode-card'}
+                  className={
+                    draft.agentMode === value ? 'card mode-card selected' : 'card mode-card'
+                  }
                   key={value}
                 >
                   <input
@@ -1090,7 +1104,7 @@ export function Builder({
                 {error}
               </div>
             )}
-            <div className="review-grid">
+            <div className="review-grid grid" data-item="small">
               <ReviewStat value={draft.uis.length} label="Interfaces" />
               <ReviewStat value={draft.services.length} label="Services" />
               <ReviewStat
@@ -1116,7 +1130,7 @@ export function Builder({
                 label="Resources"
               />
             </div>
-            <article className="review-summary">
+            <article className="review-summary card stack" data-gap="m" data-decoration="lines">
               <h2>{draft.projectName || 'Untitled architecture'}</h2>
               <p>{draft.productSummary || 'No product summary yet.'}</p>
               <dl>
@@ -1145,13 +1159,14 @@ export function Builder({
           </div>
           <div className="step-actions">
             <button
-              className="secondary-action"
+              className="button"
+              data-variant="secondary"
               onClick={() => (sectionIndex === 0 ? onExit() : navigateTo(sectionIndex - 1))}
             >
               ← {sectionIndex === 0 ? 'Home' : sections[sectionIndex - 1]?.label}
             </button>
             <button
-              className="primary-action compact"
+              className="button"
               onClick={() =>
                 sectionIndex === sections.length - 1 ? generate() : navigateTo(sectionIndex + 1)
               }
@@ -1181,16 +1196,23 @@ function ResourceEditor({
 }) {
   return (
     <article
-      className={enabled ? 'editor-card resource-card enabled' : 'editor-card resource-card'}
+      className={enabled ? 'card resource-card enabled stack' : 'card resource-card stack'}
+      data-gap="m"
     >
       <div className="card-header">
-        <div>
+        <div className="stack" data-gap="xs">
           <span className="type-pill resource">Resource</span>
           <h2>{title}</h2>
         </div>
-        <button className={enabled ? 'danger-link' : 'secondary-action'} onClick={onToggle}>
-          {enabled ? 'Remove' : '+ Add'}
-        </button>
+        {enabled ? (
+          <button className="danger-link" onClick={onToggle}>
+            Remove
+          </button>
+        ) : (
+          <button className="button" data-variant="secondary" onClick={onToggle}>
+            + Add
+          </button>
+        )}
       </div>
       {children}
     </article>
@@ -1207,8 +1229,8 @@ function ResourceUsers({
 }) {
   return (
     <div className="resource-users">
-      <label>
-        Owner
+      <label className="field">
+        <span className="field__label">Owner</span>
         <select
           value={users.ownerComponentId}
           onChange={(event) => onChange({ ...users, ownerComponentId: event.target.value })}
@@ -1231,7 +1253,7 @@ function ResourceUsers({
 }
 function ReviewStat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="review-stat">
+    <div className="review-stat card stack" data-gap="xs">
       <strong>{value}</strong>
       <span>{label}</span>
     </div>

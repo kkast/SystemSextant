@@ -50,9 +50,9 @@ export function ArtifactView({
     }
   };
   return (
-    <section className="artifact-workspace">
+    <section className="container artifact-workspace stack" data-gap="l">
       <header className="artifact-header">
-        <div>
+        <div className="stack" data-gap="xs">
           <button className="back-link" onClick={onBack}>
             ← Back to {config ? 'architecture' : 'library'}
           </button>
@@ -63,7 +63,8 @@ export function ArtifactView({
         <div className="artifact-primary-actions">
           {config && (
             <button
-              className="secondary-action"
+              className="button"
+              data-variant="secondary"
               disabled={busy}
               onClick={() => {
                 setNotice(undefined);
@@ -73,10 +74,7 @@ export function ArtifactView({
               Save as template
             </button>
           )}
-          <button
-            className="primary-action compact coral"
-            onClick={() => downloadArtifacts(title, artifacts)}
-          >
+          <button className="button" onClick={() => downloadArtifacts(title, artifacts)}>
             Download both
           </button>
         </div>
@@ -88,14 +86,15 @@ export function ArtifactView({
       )}
       {templateOpen && config && (
         <form
-          className="message template-name-form"
+          className="message template-name-form stack"
+          data-gap="m"
           onSubmit={(event) => {
             event.preventDefault();
             void saveTemplate();
           }}
         >
-          <label>
-            Template name
+          <label className="field">
+            <span className="field__label">Template name</span>
             <input
               autoFocus
               value={templateName}
@@ -104,17 +103,14 @@ export function ArtifactView({
               onChange={(event) => setTemplateName(event.target.value)}
             />
           </label>
-          <div className="template-name-actions">
-            <button
-              type="submit"
-              className="primary-action compact"
-              disabled={busy || !templateName.trim()}
-            >
+          <div className="template-name-actions cluster">
+            <button type="submit" className="button" disabled={busy || !templateName.trim()}>
               {busy ? 'Saving…' : 'Save template'}
             </button>
             <button
               type="button"
-              className="secondary-action"
+              className="button"
+              data-variant="secondary"
               disabled={busy}
               onClick={() => {
                 setTemplateOpen(false);
