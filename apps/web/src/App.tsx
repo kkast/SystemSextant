@@ -306,22 +306,22 @@ export function App() {
                   </div>
                   <span>{sessions.length + templates.length}</span>
                 </div>
-                <div className="summary-counts">
+                <div className="stack">
                   <button
-                    className="button"
+                    className="button stat"
                     data-variant="secondary"
                     onClick={() => setView('library')}
                   >
-                    <strong>{sessions.length}</strong>
-                    <span>Completed sessions</span>
+                    <strong className="stat__value">{sessions.length}</strong>
+                    <span className="stat__label">Completed sessions</span>
                   </button>
                   <button
-                    className="button"
+                    className="button stat"
                     data-variant="secondary"
                     onClick={() => setView('library')}
                   >
-                    <strong>{templates.length}</strong>
-                    <span>Reusable templates</span>
+                    <strong className="stat__value">{templates.length}</strong>
+                    <span className="stat__label">Reusable templates</span>
                   </button>
                 </div>
               </section>

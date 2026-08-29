@@ -62,7 +62,7 @@ export function Library({
         </button>
       </div>
       {filtered.length === 0 ? (
-        <div className="library-empty stack" data-gap="s">
+        <div className="empty-state stack" data-gap="s">
           <h2>No {tab} found</h2>
           <p className="muted">
             {query

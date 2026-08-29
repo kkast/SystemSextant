@@ -689,7 +689,7 @@ export function Builder({
                 >
                   {draft.database && (
                     <>
-                      <div className="form-grid three-column grid">
+                      <div className="form-grid grid" data-item="small">
                         <label className="field">
                           <span className="field__label">Database</span>
                           <select
@@ -1169,7 +1169,7 @@ export function Builder({
             </span>
             <strong>{sections[sectionIndex]?.label}</strong>
           </div>
-          <div className="step-actions">
+          <div className="step-actions cluster">
             <button
               className="button"
               data-variant="secondary"
@@ -1241,7 +1241,7 @@ function ResourceUsers({
   onChange: (users: { ownerComponentId: string; consumerComponentIds: string[] }) => void;
 }) {
   return (
-    <div className="resource-users grid">
+    <div className="resource-users grid" data-gap="l">
       <label className="field">
         <span className="field__label">Owner</span>
         <select
@@ -1266,9 +1266,9 @@ function ResourceUsers({
 }
 function ReviewStat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="review-stat card stack" data-gap="xs">
-      <strong>{value}</strong>
-      <span>{label}</span>
+    <div className="card stat">
+      <strong className="stat__value">{value}</strong>
+      <span className="stat__label">{label}</span>
     </div>
   );
 }
