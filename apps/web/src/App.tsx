@@ -256,7 +256,7 @@ export function App() {
                 />
               </div>
             </div>
-            <div className="grid" data-gap="l">
+            <div className="grid dashboard-grid" data-gap="l">
               <section className="dashboard-panel recent-panel card stack" data-decoration="orb">
                 <div className="panel-heading">
                   <div className="stack" data-gap="xs">
@@ -352,8 +352,8 @@ export function App() {
         )}
         <Suspense
           fallback={
-            <div className="container">
-              <p className="global-message message">Loading workspace…</p>
+            <div className="container loading-workspace">
+              <p className="message">Loading workspace…</p>
             </div>
           }
         >

@@ -26,7 +26,7 @@
  * Field: .field, .field__label, .field__hint, .field__error
  * Color tokens: --color-canvas, --color-surface, --color-surface-subtle, --color-text,
  *               --color-text-muted, --color-border, --color-action, --color-action-hover,
- *               --color-on-action, --color-focus, --color-danger
+ *               --color-on-action, --color-focus, --color-danger, --color-selection
  * Spacing tokens: --space-xs, --space-s, --space-m, --space-l, --space-xl
  * Width/shape tokens: --content-width, --measure, --radius-s, --radius-m, --radius-l
  * Material tokens: --border-width, --shadow-color, --shadow-y, --shadow-blur,
@@ -113,6 +113,7 @@
     --color-on-action: #111318;
     --color-focus: #0fc76b;
     --color-danger: #b42318;
+    --color-selection: #74dfa9;
     --color-highlight: #ffffff;
     --color-shade: #6e6d53;
     --color-action-highlight: #74dfa9;
@@ -200,8 +201,8 @@
   }
 
   ::selection {
-    background: var(--color-action);
-    color: var(--color-on-action);
+    background: var(--color-selection);
+    color: var(--color-text);
   }
 
   :focus-visible {
@@ -213,8 +214,9 @@
 @layer layout {
   .container {
     --container-gutter: var(--space-xl);
-    inline-size: min(calc(100% - (2 * var(--container-gutter))), var(--content-width));
+    inline-size: min(100%, var(--content-width));
     margin-inline: auto;
+    padding-inline: var(--container-gutter);
   }
 
   .stack {

@@ -5,6 +5,11 @@
  * Only composition that the system's layout/blocks cannot express lives here.
  */
 
+html,
+body {
+  overflow-x: clip;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -41,6 +46,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-m);
+  flex-wrap: wrap;
   padding: var(--space-s) 0;
   border-bottom: var(--border-width) solid var(--color-border);
 }
@@ -86,11 +92,12 @@
 }
 
 .feature-grid {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 @media (max-width: 52.25rem) {
-  .feature-grid {
+  .feature-grid,
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -102,6 +109,7 @@
   align-items: start;
   justify-content: space-between;
   gap: var(--space-l);
+  flex-wrap: wrap;
   border-block-end: var(--border-width) solid var(--color-border);
   padding-block-end: var(--space-m);
 }
@@ -189,7 +197,9 @@
   border: 0;
   background: transparent;
   color: inherit;
+  inline-size: fit-content;
   padding: var(--space-xs) 0;
+  text-align: start;
   font-weight: 700;
   cursor: pointer;
 }
@@ -210,6 +220,7 @@
 
 .nav-item {
   display: flex;
+  align-items: baseline;
   gap: var(--space-s);
   text-align: start;
   border: 0;
@@ -221,6 +232,8 @@
 }
 
 .nav-item span {
+  display: inline-block;
+  inline-size: 1.5em;
   font-size: smaller;
   opacity: 0.75;
 }
@@ -232,7 +245,7 @@
 
 .workspace-main {
   min-inline-size: 0;
-  padding-block-end: var(--space-m);
+  padding-block-end: calc(var(--control-size) + var(--space-l));
 }
 
 .editor-section,
@@ -249,10 +262,12 @@
   position: sticky;
   bottom: var(--space-m);
   z-index: 5;
+  margin-block-start: var(--space-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-m);
+  gap: var(--space-l);
+  flex-wrap: wrap;
   padding: var(--space-s) var(--space-m);
   border-radius: var(--radius-m);
   background: color-mix(in srgb, var(--color-surface) 94%, transparent);
@@ -266,6 +281,16 @@
   font-size: smaller;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.step-navigation > div:first-child {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.step-actions {
+  display: flex;
+  gap: var(--space-s);
 }
 
 .section-toolbar {
@@ -285,6 +310,7 @@
   align-items: start;
   justify-content: space-between;
   gap: var(--space-l);
+  flex-wrap: wrap;
 }
 
 .type-pill {
@@ -310,10 +336,10 @@
 }
 
 .form-grid.two-column {
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
 .form-grid.three-column {
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 }
 
 .empty-state {
@@ -327,13 +353,13 @@
 
 .connection-row {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: var(--space-l);
 }
 
 .capability-card {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: var(--space-l);
 }
 
@@ -343,7 +369,7 @@
 
 .resource-users {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
   gap: var(--space-l);
 }
 
@@ -406,7 +432,7 @@
 
 .auth-card {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-l);
   align-items: start;
 }
@@ -435,7 +461,7 @@
 .review-summary dl,
 .library-card dl {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   gap: var(--space-m);
 }
 
@@ -458,11 +484,23 @@
   color: var(--color-danger);
 }
 
+.loading-workspace {
+  min-block-size: 60vh;
+  display: grid;
+  place-items: center;
+}
+
+.loading-workspace .message {
+  inline-size: 100%;
+  text-align: center;
+}
+
 .global-message {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-m);
+  flex-wrap: wrap;
 }
 
 .global-message button {
@@ -525,6 +563,7 @@
 
 .tab-list {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
 }
 
@@ -570,6 +609,7 @@
 
 .library-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
   border-block-end: var(--border-width) solid var(--color-border);
   margin-block-start: var(--space-l);
