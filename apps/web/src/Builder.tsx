@@ -93,13 +93,13 @@ function CheckboxGroup({
   label: string;
 }) {
   return (
-    <fieldset className="checkbox-group">
+    <fieldset className="choice-group">
       <legend>{label}</legend>
       {options.length === 0 ? (
         <span className="muted">No available services</span>
       ) : (
         options.map((option) => (
-          <label className="check-row" key={option.id}>
+          <label className="choice" key={option.id}>
             <input
               type="checkbox"
               checked={values.includes(option.id)}
@@ -279,7 +279,7 @@ export function Builder({
   return (
     <section className="workspace">
       <aside className="workspace-sidebar">
-        <button className="back-link" onClick={onExit}>
+        <button className="button" data-variant="ghost" onClick={onExit}>
           ← Home
         </button>
         <div className="draft-heading">
@@ -294,7 +294,8 @@ export function Builder({
         <nav aria-label="Architecture sections">
           {sections.map((item, index) => (
             <button
-              className={section === item.id ? 'nav-item active' : 'nav-item'}
+              className="nav-item"
+              aria-current={section === item.id ? 'step' : undefined}
               key={item.id}
               onClick={() => setSection(item.id)}
             >
@@ -339,7 +340,7 @@ export function Builder({
             title="Name the pieces of the system"
             description="Interfaces and services are independent responsibilities, not generic frontend/backend placeholders."
           >
-            <div className="section-toolbar">
+            <div className="section-toolbar split">
               <h2>Interfaces</h2>
               <button
                 className="button"
@@ -371,9 +372,15 @@ export function Builder({
               )}
               {draft.uis.map((ui) => (
                 <article className="card stack" data-gap="m" key={ui.id}>
-                  <div className="card-header">
-                    <span className="type-pill">UI · {ui.id}</span>
-                    <button className="danger-link" onClick={() => removeComponent(ui.id)}>
+                  <div className="card-header split">
+                    <span className="badge" data-variant="accent">
+                      UI · {ui.id}
+                    </span>
+                    <button
+                      className="button"
+                      data-variant="danger-ghost"
+                      onClick={() => removeComponent(ui.id)}
+                    >
                       Remove
                     </button>
                   </div>
@@ -441,7 +448,7 @@ export function Builder({
                 </article>
               ))}
             </div>
-            <div className="section-toolbar spaced">
+            <div className="section-toolbar split spaced">
               <h2>Services</h2>
               <button
                 className="button"
@@ -474,9 +481,15 @@ export function Builder({
               )}
               {draft.services.map((service) => (
                 <article className="card stack" data-gap="m" key={service.id}>
-                  <div className="card-header">
-                    <span className="type-pill service">Service · {service.id}</span>
-                    <button className="danger-link" onClick={() => removeComponent(service.id)}>
+                  <div className="card-header split">
+                    <span className="badge" data-variant="danger">
+                      Service · {service.id}
+                    </span>
+                    <button
+                      className="button"
+                      data-variant="danger-ghost"
+                      onClick={() => removeComponent(service.id)}
+                    >
                       Remove
                     </button>
                   </div>
@@ -561,7 +574,9 @@ export function Builder({
               {draft.uis.map((ui) => (
                 <article className="connection-row card" key={ui.id}>
                   <div className="stack" data-gap="xs">
-                    <span className="type-pill">UI</span>
+                    <span className="badge" data-variant="accent">
+                      UI
+                    </span>
                     <h2>{ui.name}</h2>
                     <p>{ui.description}</p>
                   </div>
@@ -584,7 +599,9 @@ export function Builder({
               {draft.services.map((service) => (
                 <article className="connection-row card" key={service.id}>
                   <div className="stack" data-gap="xs">
-                    <span className="type-pill service">Service</span>
+                    <span className="badge" data-variant="danger">
+                      Service
+                    </span>
                     <h2>{service.name}</h2>
                     <p>{service.description}</p>
                   </div>
@@ -617,7 +634,7 @@ export function Builder({
             </div>
             <article className="card capability-card">
               <div className="stack" data-gap="xs">
-                <span className="type-pill resource">Capability</span>
+                <span className="badge">Capability</span>
                 <h2>Real-time communication</h2>
                 <p>Select the transports the services must support.</p>
               </div>
@@ -979,11 +996,11 @@ export function Builder({
                 {draft.services.some((service) => service.runtime === 'cloudflare-workers') && (
                   <article className="card stack" data-gap="m">
                     <div className="stack" data-gap="xs">
-                      <span className="type-pill resource">Capability</span>
+                      <span className="badge">Capability</span>
                       <h2>Periodic scheduled execution</h2>
                       <p>Cloudflare Workers Cron Triggers run code on a schedule.</p>
                     </div>
-                    <label className="check-row">
+                    <label className="choice">
                       <input
                         type="checkbox"
                         checked={draft.scheduledJobs}
@@ -1008,7 +1025,7 @@ export function Builder({
           >
             <article className="card auth-card">
               <div className="stack" data-gap="xs">
-                <span className="type-pill resource">Access</span>
+                <span className="badge">Access</span>
                 <h2>Authentication</h2>
               </div>
               <label className="field">
@@ -1073,12 +1090,7 @@ export function Builder({
                   ],
                 ] as const
               ).map(([value, label, description]) => (
-                <label
-                  className={
-                    draft.agentMode === value ? 'card mode-card selected' : 'card mode-card'
-                  }
-                  key={value}
-                >
+                <label className="card choice-card" key={value}>
                   <input
                     type="radio"
                     name="agent-mode"
@@ -1100,7 +1112,7 @@ export function Builder({
             description="SystemSextant validates the graph before producing byte-stable YAML and prompt artifacts."
           >
             {error && (
-              <div className="message error" role="alert">
+              <div className="alert" data-variant="danger" role="alert">
                 {error}
               </div>
             )}
@@ -1133,7 +1145,7 @@ export function Builder({
             <article className="review-summary card stack" data-gap="m" data-decoration="lines">
               <h2>{draft.projectName || 'Untitled architecture'}</h2>
               <p>{draft.productSummary || 'No product summary yet.'}</p>
-              <dl>
+              <dl className="definition-grid">
                 <div>
                   <dt>Agent workflow</dt>
                   <dd>{draft.agentMode}</dd>
@@ -1196,16 +1208,17 @@ function ResourceEditor({
 }) {
   return (
     <article
-      className={enabled ? 'card resource-card enabled stack' : 'card resource-card stack'}
+      className="card resource-card stack"
+      data-selected={enabled ? 'true' : undefined}
       data-gap="m"
     >
-      <div className="card-header">
+      <div className="card-header split">
         <div className="stack" data-gap="xs">
-          <span className="type-pill resource">Resource</span>
+          <span className="badge">Resource</span>
           <h2>{title}</h2>
         </div>
         {enabled ? (
-          <button className="danger-link" onClick={onToggle}>
+          <button className="button" data-variant="danger-ghost" onClick={onToggle}>
             Remove
           </button>
         ) : (
@@ -1228,7 +1241,7 @@ function ResourceUsers({
   onChange: (users: { ownerComponentId: string; consumerComponentIds: string[] }) => void;
 }) {
   return (
-    <div className="resource-users">
+    <div className="resource-users grid">
       <label className="field">
         <span className="field__label">Owner</span>
         <select

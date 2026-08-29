@@ -198,12 +198,17 @@ export function App() {
               </span>
               <span>SystemSextant</span>
             </button>
-            <nav className="topnav" aria-label="Main navigation">
-              <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>
+            <nav className="topnav cluster" data-gap="xs" aria-label="Main navigation">
+              <button
+                className="nav-item"
+                aria-current={view === 'home' ? 'page' : undefined}
+                onClick={() => setView('home')}
+              >
                 Home
               </button>
               <button
-                className={view === 'library' ? 'active' : ''}
+                className="nav-item"
+                aria-current={view === 'library' ? 'page' : undefined}
                 onClick={() => setView('library')}
               >
                 Library <span>{sessions.length + templates.length}</span>
@@ -215,9 +220,9 @@ export function App() {
       <main>
         {status && view !== 'builder' && (
           <div className="container">
-            <div className="global-message message" role="status">
+            <div className="global-message alert split" role="status">
               {status}
-              <button className="text-action" onClick={() => setStatus(undefined)}>
+              <button className="button" data-variant="ghost" onClick={() => setStatus(undefined)}>
                 Dismiss
               </button>
             </div>
@@ -258,7 +263,7 @@ export function App() {
             </div>
             <div className="grid dashboard-grid" data-gap="l">
               <section className="dashboard-panel recent-panel card stack" data-decoration="orb">
-                <div className="panel-heading">
+                <div className="panel-heading split">
                   <div className="stack" data-gap="xs">
                     <span className="eyebrow">Drafts</span>
                     <h2>Continue where you left off</h2>
@@ -279,7 +284,8 @@ export function App() {
                           </span>
                         </button>
                         <button
-                          className="danger-link"
+                          className="button"
+                          data-variant="danger-ghost"
                           onClick={() => void confirmDelete('draft', record.id)}
                         >
                           Delete
@@ -293,7 +299,7 @@ export function App() {
                 className="dashboard-panel library-summary card stack"
                 data-decoration="dots"
               >
-                <div className="panel-heading">
+                <div className="panel-heading split">
                   <div className="stack" data-gap="xs">
                     <span className="eyebrow">Library</span>
                     <h2>Saved locally</h2>
@@ -353,7 +359,7 @@ export function App() {
         <Suspense
           fallback={
             <div className="container loading-workspace">
-              <p className="message">Loading workspace…</p>
+              <p className="alert">Loading workspace…</p>
             </div>
           }
         >

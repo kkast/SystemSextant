@@ -51,16 +51,16 @@ export function ArtifactView({
   };
   return (
     <section className="container artifact-workspace stack" data-gap="l">
-      <header className="artifact-header">
+      <header className="artifact-header split">
         <div className="stack" data-gap="xs">
-          <button className="back-link" onClick={onBack}>
+          <button className="button" data-variant="ghost" onClick={onBack}>
             ← Back to {config ? 'architecture' : 'library'}
           </button>
           <p className="eyebrow">Generated artifacts</p>
           <h1>{title}</h1>
           {config && <p className="muted">Saved automatically to your local sessions.</p>}
         </div>
-        <div className="artifact-primary-actions">
+        <div className="artifact-primary-actions toolbar">
           {config && (
             <button
               className="button"
@@ -80,13 +80,13 @@ export function ArtifactView({
         </div>
       </header>
       {notice && (
-        <div className="message" role="status">
+        <div className="alert" role="status">
           {notice}
         </div>
       )}
       {templateOpen && config && (
         <form
-          className="message template-name-form stack"
+          className="alert template-name-form stack"
           data-gap="m"
           onSubmit={(event) => {
             event.preventDefault();
@@ -122,13 +122,13 @@ export function ArtifactView({
           </div>
         </form>
       )}
-      <div className="artifact-panel">
-        <div className="artifact-toolbar">
-          <div className="tab-list" role="tablist" aria-label="Artifacts">
+      <div className="code-panel">
+        <div className="code-panel__toolbar">
+          <div className="tabs" role="tablist" aria-label="Artifacts">
             <button
               role="tab"
               aria-selected={tab === 'yaml'}
-              className={tab === 'yaml' ? 'active' : ''}
+              className="tab"
               onClick={() => setTab('yaml')}
             >
               project.yaml
@@ -136,7 +136,7 @@ export function ArtifactView({
             <button
               role="tab"
               aria-selected={tab === 'prompt'}
-              className={tab === 'prompt' ? 'active' : ''}
+              className="tab"
               onClick={() => setTab('prompt')}
             >
               AGENT_PROMPT.md
@@ -144,13 +144,15 @@ export function ArtifactView({
           </div>
           <div>
             <button
-              className="text-action"
+              className="button"
+              data-variant="ghost"
               onClick={() => void act(() => copyText(content), `${filename} copied.`)}
             >
               Copy
             </button>
             <button
-              className="text-action"
+              className="button"
+              data-variant="ghost"
               onClick={() =>
                 downloadText(
                   filename,
@@ -163,7 +165,7 @@ export function ArtifactView({
             </button>
           </div>
         </div>
-        <pre tabIndex={0}>
+        <pre className="code-panel__content" tabIndex={0}>
           <code>{content}</code>
         </pre>
       </div>

@@ -25,7 +25,7 @@ export function Library({
   );
   return (
     <section className="container library-page stack" data-gap="m">
-      <div className="library-heading">
+      <div className="library-heading split">
         <div className="stack" data-gap="xs">
           <p className="eyebrow">Local library</p>
           <h1>Return to your work</h1>
@@ -43,11 +43,11 @@ export function Library({
           />
         </label>
       </div>
-      <div className="library-tabs" role="tablist">
+      <div className="tabs" role="tablist">
         <button
           role="tab"
           aria-selected={tab === 'sessions'}
-          className={tab === 'sessions' ? 'active' : ''}
+          className="tab"
           onClick={() => setTab('sessions')}
         >
           Sessions <span>{sessions.length}</span>
@@ -55,7 +55,7 @@ export function Library({
         <button
           role="tab"
           aria-selected={tab === 'templates'}
-          className={tab === 'templates' ? 'active' : ''}
+          className="tab"
           onClick={() => setTab('templates')}
         >
           Templates <span>{templates.length}</span>
@@ -78,11 +78,13 @@ export function Library({
             ? (filtered as SessionMetadataV1[]).map((item) => (
                 <article className="library-card card stack" data-gap="m" key={item.id}>
                   <div className="stack" data-gap="s">
-                    <span className="type-pill">Session</span>
+                    <span className="badge" data-variant="accent">
+                      Session
+                    </span>
                     <h2>{item.title}</h2>
                     <p className="muted">{new Date(item.createdAt).toLocaleString()}</p>
                   </div>
-                  <dl>
+                  <dl className="definition-grid">
                     <div>
                       <dt>Frontend</dt>
                       <dd>{item.frontend}</dd>
@@ -92,7 +94,7 @@ export function Library({
                       <dd>{item.backend}</dd>
                     </div>
                   </dl>
-                  <div className="card-actions">
+                  <div className="card-actions split">
                     <button
                       className="button"
                       data-variant="secondary"
@@ -100,7 +102,11 @@ export function Library({
                     >
                       Open
                     </button>
-                    <button className="danger-link" onClick={() => onDeleteSession(item.id)}>
+                    <button
+                      className="button"
+                      data-variant="danger-ghost"
+                      onClick={() => onDeleteSession(item.id)}
+                    >
                       Delete
                     </button>
                   </div>
@@ -109,13 +115,13 @@ export function Library({
             : (filtered as TemplateMetadataV1[]).map((item) => (
                 <article className="library-card card stack" data-gap="m" key={item.id}>
                   <div className="stack" data-gap="s">
-                    <span className="type-pill resource">Template</span>
+                    <span className="badge">Template</span>
                     <h2>{item.title}</h2>
                     <p className="muted">
                       {item.description || 'Reusable architecture configuration'}
                     </p>
                   </div>
-                  <div className="card-actions">
+                  <div className="card-actions split">
                     <button
                       className="button"
                       data-variant="secondary"
@@ -123,7 +129,11 @@ export function Library({
                     >
                       Use template
                     </button>
-                    <button className="danger-link" onClick={() => onDeleteTemplate(item.id)}>
+                    <button
+                      className="button"
+                      data-variant="danger-ghost"
+                      onClick={() => onDeleteTemplate(item.id)}
+                    >
                       Delete
                     </button>
                   </div>
