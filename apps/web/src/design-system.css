@@ -15,7 +15,7 @@
  *    It must use these tokens and must not modify this file.
  *
  * AVAILABLE VOCABULARY
- * Layout: .container, .stack, .cluster, .grid, .split, .toolbar
+ * Layout: .container, .stack, .cluster, .grid, .split, .toolbar, .page, .columns
  * Stack gaps: default(m), xs, s, l, xl via data-gap
  * Cluster gaps: default(s), xs, m via data-gap
  * Grid item sizes: default, small, large via data-item; gaps: default(m), l
@@ -27,6 +27,11 @@
  * Navigation: .nav-item; current via aria-current
  * Data/code: .definition-grid, .stats, .stat, .code-panel and its elements
  * Empty state: .empty-state
+ * Accessibility/text: .visually-hidden, .text-muted, .text-lead, .eyebrow
+ * Section heading: .section-heading; optional divider via data-divider="true"
+ * Action surface: .action-bar; optional sticky position via data-position="sticky"
+ * Interactive row: .list-row, .list-row__main, .list-row__actions
+ * Columns: equal(default), leading via data-ratio
  * Card: .card; optional decoration via data-decoration; selected via data-selected
  * AVAILABLE CARD DECORATIONS: orb, lines, dots
  * ACTIVE CARD DECORATIONS: orb, lines, dots
@@ -207,6 +212,38 @@
     color: inherit;
   }
 
+  .text-muted {
+    color: var(--color-text-muted);
+    font-size: smaller;
+  }
+
+  .text-lead {
+    max-inline-size: var(--measure);
+    color: var(--color-text-muted);
+    font-size: larger;
+    line-height: 1.6;
+  }
+
+  .eyebrow {
+    color: var(--color-action);
+    font-size: smaller;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .visually-hidden {
+    position: absolute !important;
+    inline-size: 1px !important;
+    block-size: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
   ::selection {
     background: var(--color-selection);
     color: var(--color-text);
@@ -293,6 +330,27 @@
 
   .toolbar {
     justify-content: flex-end;
+  }
+
+  .page {
+    padding-block: var(--space-xl);
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: var(--space-l);
+    align-items: start;
+  }
+
+  .columns[data-ratio='leading'] {
+    grid-template-columns: minmax(0, 1.2fr) minmax(min(100%, 16rem), 1fr);
+  }
+
+  @media (max-width: 44rem) {
+    .columns[data-ratio='leading'] {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
@@ -441,6 +499,69 @@
     background: var(--color-surface-subtle);
     color: var(--color-text-muted);
     cursor: not-allowed;
+  }
+
+  .section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s) var(--space-m);
+  }
+
+  .section-heading[data-divider='true'] {
+    padding-block-end: var(--space-m);
+    border-block-end: var(--border-width) solid var(--color-border);
+  }
+
+  .action-bar {
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-s);
+    padding: var(--space-s) var(--space-m);
+    border-radius: var(--radius-m);
+    background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(12px);
+  }
+
+  .action-bar[data-position='sticky'] {
+    position: sticky;
+    inset-block-end: var(--space-m);
+  }
+
+  .list-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-s);
+  }
+
+  .list-row__main {
+    min-inline-size: 0;
+    padding: var(--space-s) 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .list-row__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  @media (max-width: 32rem) {
+    .list-row {
+      grid-template-columns: 1fr;
+    }
   }
 
   .button[data-variant='ghost'],

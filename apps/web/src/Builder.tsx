@@ -96,7 +96,7 @@ function CheckboxGroup({
     <fieldset className="choice-group">
       <legend>{label}</legend>
       {options.length === 0 ? (
-        <span className="muted">No available services</span>
+        <span className="text-muted">No available services</span>
       ) : (
         options.map((option) => (
           <label className="choice" key={option.id}>
@@ -134,7 +134,7 @@ function EditorSection({
     <div className="editor-section stack" data-gap="l">
       <p className="eyebrow">{eyebrow}</p>
       <h1>{title}</h1>
-      <p className="lede">{description}</p>
+      <p className="text-lead">{description}</p>
       <div className="editor-content stack" data-gap="l">
         {children}
       </div>

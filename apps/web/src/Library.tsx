@@ -4,6 +4,8 @@ import type { SessionMetadataV1, TemplateMetadataV1 } from '@systemsextant/core'
 export function Library({
   sessions,
   templates,
+  initialTab,
+  onTabChange,
   onOpenSession,
   onUseTemplate,
   onDeleteSession,
@@ -11,12 +13,14 @@ export function Library({
 }: {
   sessions: readonly SessionMetadataV1[];
   templates: readonly TemplateMetadataV1[];
+  initialTab: 'sessions' | 'templates';
+  onTabChange: (tab: 'sessions' | 'templates') => void;
   onOpenSession: (id: string) => void;
   onUseTemplate: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onDeleteTemplate: (id: string) => void;
 }) {
-  const [tab, setTab] = useState<'sessions' | 'templates'>('sessions');
+  const [tab, setTab] = useState<'sessions' | 'templates'>(initialTab);
   const [query, setQuery] = useState('');
   const items = tab === 'sessions' ? sessions : templates;
   const filtered = useMemo(
@@ -29,7 +33,7 @@ export function Library({
         <div className="stack" data-gap="xs">
           <p className="eyebrow">Local library</p>
           <h1>Return to your work</h1>
-          <p className="lede">
+          <p className="text-lead">
             Sessions and templates stay in this browser and are never uploaded.
           </p>
         </div>
@@ -48,7 +52,10 @@ export function Library({
           role="tab"
           aria-selected={tab === 'sessions'}
           className="tab"
-          onClick={() => setTab('sessions')}
+          onClick={() => {
+            setTab('sessions');
+            onTabChange('sessions');
+          }}
         >
           Sessions <span>{sessions.length}</span>
         </button>
@@ -56,7 +63,10 @@ export function Library({
           role="tab"
           aria-selected={tab === 'templates'}
           className="tab"
-          onClick={() => setTab('templates')}
+          onClick={() => {
+            setTab('templates');
+            onTabChange('templates');
+          }}
         >
           Templates <span>{templates.length}</span>
         </button>
@@ -64,7 +74,7 @@ export function Library({
       {filtered.length === 0 ? (
         <div className="empty-state stack" data-gap="s">
           <h2>No {tab} found</h2>
-          <p className="muted">
+          <p className="text-muted">
             {query
               ? 'Try a different search.'
               : tab === 'sessions'
@@ -82,7 +92,7 @@ export function Library({
                       Session
                     </span>
                     <h2>{item.title}</h2>
-                    <p className="muted">{new Date(item.createdAt).toLocaleString()}</p>
+                    <p className="text-muted">{new Date(item.createdAt).toLocaleString()}</p>
                   </div>
                   <dl className="definition-grid">
                     <div>
@@ -117,7 +127,7 @@ export function Library({
                   <div className="stack" data-gap="s">
                     <span className="badge">Template</span>
                     <h2>{item.title}</h2>
-                    <p className="muted">
+                    <p className="text-muted">
                       {item.description || 'Reusable architecture configuration'}
                     </p>
                   </div>

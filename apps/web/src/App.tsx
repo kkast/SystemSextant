@@ -36,6 +36,54 @@ async function createDraftRecord(draft?: ArchitectureDraft): Promise<DraftRecord
   return { id: newId('draft'), draft: value, createdAt: timestamp, updatedAt: timestamp };
 }
 
+function DeleteDialog({
+  kind,
+  onConfirm,
+  onCancel,
+}: {
+  kind: 'session' | 'template' | 'draft';
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={dialog}
+      className="delete-dialog"
+      aria-labelledby="delete-dialog-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <div className="card stack" data-gap="m">
+        <div className="stack" data-gap="xs">
+          <p className="eyebrow">Confirm deletion</p>
+          <h2 id="delete-dialog-title">Delete this {kind}?</h2>
+          <p className="text-muted">This cannot be undone.</p>
+        </div>
+        <div className="alert" data-variant="danger" role="alert">
+          The saved {kind} will be permanently removed from this browser.
+        </div>
+        <div className="toolbar">
+          <button className="button" data-variant="secondary" autoFocus onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="button" data-variant="danger-ghost" onClick={onConfirm}>
+            Delete
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
 export function App() {
   const repositories = useMemo(
     () => ({
@@ -51,6 +99,11 @@ export function App() {
   const [drafts, setDrafts] = useState<readonly DraftRecord[]>([]);
   const [sessions, setSessions] = useState<readonly SessionMetadataV1[]>([]);
   const [templates, setTemplates] = useState<readonly TemplateMetadataV1[]>([]);
+  const [libraryTab, setLibraryTab] = useState<'sessions' | 'templates'>('sessions');
+  const [pendingDelete, setPendingDelete] = useState<{
+    kind: 'session' | 'template' | 'draft';
+    id: string;
+  }>();
   const [status, setStatus] = useState<string>();
   const importInput = useRef<HTMLInputElement>(null);
   const refresh = useCallback(async () => {
@@ -146,6 +199,7 @@ export function App() {
       title: name,
       now: new Date(),
     });
+    setLibraryTab('templates');
     await refresh();
   };
   const useTemplate = async (id: string) => {
@@ -173,12 +227,18 @@ export function App() {
     });
     setView('artifacts');
   };
-  const confirmDelete = async (kind: 'session' | 'template' | 'draft', id: string) => {
-    if (!window.confirm(`Delete this ${kind}? This cannot be undone.`)) return;
-    if (kind === 'session') await repositories.sessions.delete(id);
-    else if (kind === 'template') await repositories.templates.delete(id);
-    else await repositories.drafts.delete(id);
-    await refresh();
+  const deletePendingItem = async () => {
+    if (!pendingDelete) return;
+    try {
+      if (pendingDelete.kind === 'session') await repositories.sessions.delete(pendingDelete.id);
+      else if (pendingDelete.kind === 'template')
+        await repositories.templates.delete(pendingDelete.id);
+      else await repositories.drafts.delete(pendingDelete.id);
+      setPendingDelete(undefined);
+      await refresh();
+    } catch (reason) {
+      setStatus(reason instanceof Error ? reason.message : String(reason));
+    }
   };
   const importProject = async (file: File) => {
     try {
@@ -236,12 +296,19 @@ export function App() {
             </div>
           </div>
         )}
+        {pendingDelete && view !== 'builder' && (
+          <DeleteDialog
+            kind={pendingDelete.kind}
+            onConfirm={() => void deletePendingItem()}
+            onCancel={() => setPendingDelete(undefined)}
+          />
+        )}
         {view === 'home' && (
-          <section className="container home stack" data-gap="xl">
+          <section className="container page stack" data-gap="xl">
             <div className="stack hero-copy" data-gap="m">
               <p className="eyebrow">Architecture, with bearings</p>
               <h1>Turn a product idea into a system an agent can build.</h1>
-              <p className="lede">
+              <p className="text-lead">
                 Shape components, connections, and infrastructure in a visual workspace. Generate
                 deterministic project instructions without sending your work anywhere.
               </p>
@@ -279,7 +346,7 @@ export function App() {
                   <span>{drafts.length}</span>
                 </div>
                 {drafts.length === 0 ? (
-                  <p className="muted">Your autosaved drafts will appear here.</p>
+                  <p className="text-muted">Your autosaved drafts will appear here.</p>
                 ) : (
                   <div className="recent-list stack" data-gap="xs">
                     {drafts.slice(0, 4).map((record) => (
@@ -294,7 +361,7 @@ export function App() {
                         <button
                           className="button"
                           data-variant="danger-ghost"
-                          onClick={() => void confirmDelete('draft', record.id)}
+                          onClick={() => setPendingDelete({ kind: 'draft', id: record.id })}
                         >
                           Delete
                         </button>
@@ -317,7 +384,10 @@ export function App() {
                   <button
                     className="button stat"
                     data-variant="secondary"
-                    onClick={() => setView('library')}
+                    onClick={() => {
+                      setLibraryTab('sessions');
+                      setView('library');
+                    }}
                   >
                     <strong className="stat__value">{sessions.length}</strong>
                     <span className="stat__label">Completed sessions</span>
@@ -325,7 +395,10 @@ export function App() {
                   <button
                     className="button stat"
                     data-variant="secondary"
-                    onClick={() => setView('library')}
+                    onClick={() => {
+                      setLibraryTab('templates');
+                      setView('library');
+                    }}
                   >
                     <strong className="stat__value">{templates.length}</strong>
                     <span className="stat__label">Reusable templates</span>
@@ -337,7 +410,7 @@ export function App() {
               <article className="feature-card card stack" data-decoration="lines">
                 <span className="eyebrow">01</span>
                 <h2>Build visually</h2>
-                <p className="muted">
+                <p className="text-muted">
                   Add named interfaces and services, then map relationships without stepping through
                   a terminal questionnaire.
                 </p>
@@ -345,7 +418,7 @@ export function App() {
               <article className="feature-card card stack" data-decoration="dots">
                 <span className="eyebrow">02</span>
                 <h2>Generate locally</h2>
-                <p className="muted">
+                <p className="text-muted">
                   The browser uses the same deterministic core as the CLI. No model call, account,
                   or telemetry is involved.
                 </p>
@@ -355,7 +428,7 @@ export function App() {
                   <span className="eyebrow">03</span>
                   <h2>Keep both artifacts</h2>
                 </div>
-                <p className="muted">
+                <p className="text-muted">
                   Review, copy, and download project.yaml and AGENT_PROMPT.md whenever you need
                   them.
                 </p>
@@ -400,10 +473,12 @@ export function App() {
             <Library
               sessions={sessions}
               templates={templates}
+              initialTab={libraryTab}
+              onTabChange={setLibraryTab}
               onOpenSession={(id) => void openSession(id)}
               onUseTemplate={(id) => void useTemplate(id)}
-              onDeleteSession={(id) => void confirmDelete('session', id)}
-              onDeleteTemplate={(id) => void confirmDelete('template', id)}
+              onDeleteSession={(id) => setPendingDelete({ kind: 'session', id })}
+              onDeleteTemplate={(id) => setPendingDelete({ kind: 'template', id })}
             />
           )}
         </Suspense>

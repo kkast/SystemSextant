@@ -10,35 +10,6 @@ body {
   overflow-x: clip;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.muted {
-  color: var(--color-text-muted);
-  font-size: smaller;
-}
-
-.lede {
-  color: var(--color-text-muted);
-  font-size: larger;
-  line-height: 1.6;
-  max-inline-size: var(--measure);
-}
-
-.eyebrow {
-  color: var(--color-action);
-  font-size: smaller;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 /* --- top bar --- */
 
 .topbar {
@@ -67,10 +38,6 @@ body {
 }
 
 /* --- home hero --- */
-
-.home {
-  padding-block: var(--space-xl) var(--space-xl);
-}
 
 .feature-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -256,6 +223,25 @@ body {
 }
 
 /* --- messages --- */
+
+.delete-dialog {
+  inline-size: min(32rem, calc(100% - (2 * var(--space-m))));
+  max-inline-size: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.delete-dialog::backdrop {
+  background: color-mix(in srgb, var(--color-text) 42%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.delete-dialog > .card {
+  max-block-size: calc(100vh - (2 * var(--space-xl)));
+  overflow: auto;
+}
 
 .loading-workspace {
   min-block-size: 60vh;

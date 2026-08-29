@@ -60,7 +60,7 @@ export function ArtifactView({
           </button>
           <p className="eyebrow">Generated artifacts</p>
           <h1>{title}</h1>
-          {config && <p className="muted">Saved automatically to your local sessions.</p>}
+          {config && <p className="text-muted">Saved automatically to your local sessions.</p>}
         </div>
         <div className="artifact-primary-actions toolbar">
           {config && (
