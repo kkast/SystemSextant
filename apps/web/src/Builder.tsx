@@ -744,6 +744,7 @@ export function Builder({
                               <>
                                 <option value="supabase">Supabase</option>
                                 <option value="neon">Neon</option>
+                                <option value="local-docker">Local Docker</option>
                               </>
                             ) : draft.database.type === 'mongodb' ? (
                               <option value="mongodb-atlas">MongoDB Atlas</option>

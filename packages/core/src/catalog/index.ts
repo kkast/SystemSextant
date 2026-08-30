@@ -154,7 +154,7 @@ Everything below is selectable in the current questionnaire unless marked as a c
 - Local only — development, private tools, or software that should not be hosted.
 
 ## Database and data access
-- PostgreSQL: Supabase or Neon; Prisma or Drizzle.
+- PostgreSQL: Supabase, Neon, or a local Docker container; Prisma or Drizzle.
 - MongoDB: MongoDB Atlas; MongoDB driver or Prisma.
 - Cloudflare D1: Cloudflare Workers only; Drizzle or the D1 binding API.
 

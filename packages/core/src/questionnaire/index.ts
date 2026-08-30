@@ -31,7 +31,7 @@ export const QuestionnaireAnswersSchema = z
       .refine((items) => new Set(items).size === items.length)
       .default([]),
     database: z.enum(['none', 'postgresql', 'mongodb', 'cloudflare-d1']),
-    databaseProvider: z.enum(['supabase', 'neon', 'mongodb-atlas', 'cloudflare']).optional(),
+    databaseProvider: z.enum(['supabase', 'neon', 'local-docker', 'mongodb-atlas', 'cloudflare']).optional(),
     dataAccess: z.enum(['prisma', 'drizzle', 'native-driver']).optional(),
     fileStorage: z.enum(['none', 'supabase-storage', 'cloudflare-r2']),
     infrastructure: z
@@ -163,7 +163,7 @@ export const QuestionnaireAnswersSchema = z
       });
     }
     const databaseSelections = {
-      postgresql: { providers: ['supabase', 'neon'], access: ['prisma', 'drizzle'] },
+      postgresql: { providers: ['supabase', 'neon', 'local-docker'], access: ['prisma', 'drizzle'] },
       mongodb: { providers: ['mongodb-atlas'], access: ['prisma', 'native-driver'] },
       'cloudflare-d1': { providers: ['cloudflare'], access: ['drizzle', 'native-driver'] },
     } as const;
@@ -487,6 +487,11 @@ function databaseProviderQuestion(
             value: 'neon',
             label: 'Neon PostgreSQL',
             description: 'Free-tier serverless Postgres with scale-to-zero and branching.',
+          },
+          {
+            value: 'local-docker',
+            label: 'Local PostgreSQL in Docker',
+            description: 'Self-hosted Postgres in a Docker container, defined by the project.',
           },
         ]
       : database === 'mongodb'

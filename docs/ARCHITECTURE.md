@@ -46,7 +46,7 @@ architecture draft
 - Backend selection follows frontend selection and offers Next.js server features, Express, Cloudflare Workers, or no backend. Express and Cloudflare Workers are alternatives within this single question; Next.js server features require the Next.js frontend.
 - Real-time transports are independent selections. Express projects may use Server-Sent Events, WebSockets, both, or neither; other current backends offer Server-Sent Events or neither.
 - Deployment is captured per independently deployed component. A Next.js backend shares its frontend target; Express offers Render, a self-managed VPS, or local-only operation; Cloudflare Workers offers Cloudflare or local-only operation. Frontends offer Vercel, Cloudflare, Render, a VPS, or local-only operation.
-- Data questions select a database and provider before offering only compatible ORM or direct data-access choices.
+- Data questions select a database and provider before offering only compatible ORM or direct data-access choices. PostgreSQL providers are Supabase, Neon, or a self-hosted container declared in a local Docker file; MongoDB and Cloudflare D1 have their own providers.
 - File storage is selected independently as none, Supabase Storage, or Cloudflare R2.
 - Infrastructure toggles represent application caching, distributed rate limiting, and reliable background delivery or queues. Upstash is available for every backend. When Cloudflare Workers is selected, each infrastructure need can instead use its Cloudflare-native service.
 - Authentication selects a service before offering only login methods compatible with that service.

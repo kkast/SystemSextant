@@ -159,6 +159,21 @@ describe('questionnaire', () => {
     expect(databaseOptions('cloudflare-workers')).toContain('cloudflare-d1');
   });
 
+  it('offers local Docker PostgreSQL as a provider and records its technology', () => {
+    const providerQuestion = getQuestionSequence({ database: 'postgresql' }).find(
+      ({ id }) => id === 'databaseProvider',
+    );
+    expect(providerQuestion?.kind === 'single' ? providerQuestion.options.map(({ value }) => value) : []).toContain(
+      'local-docker',
+    );
+
+    const config = normalizeProjectConfig({ ...baseAnswers, databaseProvider: 'local-docker' });
+    const database = config.resources.find(({ kind }) => kind === 'database');
+    expect(database?.technology).toBe('Local PostgreSQL in Docker with Drizzle ORM');
+    const decision = config.decisions.find(({ key }) => key === 'database.provider');
+    expect(decision?.value).toBe('local-docker');
+  });
+
   it('allows Express projects to select SSE and WebSockets together', () => {
     const question = getQuestionSequence({ frontend: 'nextjs', backend: 'express' }).find(
       ({ id }) => id === 'realtimeModes',

@@ -19,7 +19,7 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Add an independent backend choice: Next.js server features, Express, Cloudflare Workers, or no backend. Express and Cloudflare Workers are alternatives within the same question.
 - [x] Select Server-Sent Events and WebSockets independently, including both together for Express.
 - [x] Explain the deployment fit of frontend and backend choices, then capture compatible Vercel, Render, Cloudflare, VPS, or local-only targets per independently deployed component.
-- [x] Select a database and provider, then filter ORM and direct data-access choices by database compatibility.
+- [x] Select a database and provider, then filter ORM and direct data-access choices by database compatibility. PostgreSQL providers: Supabase, Neon, or a local Docker container.
 - [x] Select no file storage, Supabase Storage, or Cloudflare R2.
 - [x] Select application caching, distributed rate limiting, and reliable background delivery or queues as independent infrastructure needs.
 - [x] Map selected infrastructure challenges to Upstash.

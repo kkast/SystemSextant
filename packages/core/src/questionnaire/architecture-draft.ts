@@ -46,7 +46,7 @@ export const ArchitectureDraftSchema = z.object({
   database: z
     .object({
       type: z.enum(['postgresql', 'mongodb', 'cloudflare-d1']),
-      provider: z.enum(['supabase', 'neon', 'mongodb-atlas', 'cloudflare']),
+      provider: z.enum(['supabase', 'neon', 'local-docker', 'mongodb-atlas', 'cloudflare']),
       dataAccess: z.enum(['prisma', 'drizzle', 'native-driver']),
       users: ResourceUsersSchema,
     })
@@ -103,7 +103,7 @@ function validateDraft(draft: ArchitectureDraft): ArchitectureDraft {
   const hasCloudflareWorker = parsed.services.some((service) => service.runtime === 'cloudflare-workers');
   if (parsed.database) {
     const compatible = {
-      postgresql: { providers: ['supabase', 'neon'], access: ['prisma', 'drizzle'] },
+      postgresql: { providers: ['supabase', 'neon', 'local-docker'], access: ['prisma', 'drizzle'] },
       mongodb: { providers: ['mongodb-atlas'], access: ['prisma', 'native-driver'] },
       'cloudflare-d1': { providers: ['cloudflare'], access: ['drizzle', 'native-driver'] },
     } as const;
@@ -136,7 +136,7 @@ function validateDraft(draft: ArchitectureDraft): ArchitectureDraft {
 }
 
 const databaseTechnology = {
-  supabase: 'Supabase PostgreSQL', neon: 'Neon PostgreSQL', 'mongodb-atlas': 'MongoDB Atlas', cloudflare: 'Cloudflare D1',
+  supabase: 'Supabase PostgreSQL', neon: 'Neon PostgreSQL', 'local-docker': 'Local PostgreSQL in Docker', 'mongodb-atlas': 'MongoDB Atlas', cloudflare: 'Cloudflare D1',
 } as const;
 const accessTechnology = { prisma: 'Prisma ORM', drizzle: 'Drizzle ORM', 'native-driver': 'native driver / binding API' } as const;
 
@@ -252,7 +252,7 @@ export function architectureDraftFromConfig(config: ProjectConfigV2): Architectu
     services: config.components.filter((component) => component.kind === 'service').map((component) => ({ id: component.id, name: component.name, runtime: component.runtime, ...(component.hostUiId ? { hostUiId: component.hostUiId } : {}), ...(component.deployment ? { deployment: component.deployment } : {}), description: component.description })),
     uiServices: [...uiServices].map(([uiId, serviceIds]) => ({ uiId, serviceIds })),
     serviceDependencies: [...serviceDependencies].map(([serviceId, dependencyIds]) => ({ serviceId, dependencyIds })),
-    ...(database ? { database: { type: database.technology.includes('MongoDB') ? 'mongodb' : database.technology.includes('D1') ? 'cloudflare-d1' : 'postgresql', provider: database.technology.includes('Neon') ? 'neon' : database.technology.includes('MongoDB') ? 'mongodb-atlas' : database.technology.includes('D1') ? 'cloudflare' : 'supabase', dataAccess: database.technology.includes('Prisma') ? 'prisma' : database.technology.includes('native driver') ? 'native-driver' : 'drizzle', users: resourceUsers(database)! } } : {}),
+    ...(database ? { database: { type: database.technology.includes('MongoDB') ? 'mongodb' : database.technology.includes('D1') ? 'cloudflare-d1' : 'postgresql', provider: database.technology.includes('Neon') ? 'neon' : database.technology.includes('Docker') ? 'local-docker' : database.technology.includes('MongoDB') ? 'mongodb-atlas' : database.technology.includes('D1') ? 'cloudflare' : 'supabase', dataAccess: database.technology.includes('Prisma') ? 'prisma' : database.technology.includes('native driver') ? 'native-driver' : 'drizzle', users: resourceUsers(database)! } } : {}),
     ...(cache ? { cache: { provider: cache.technology.includes('Cloudflare') ? 'cloudflare' : 'upstash', users: resourceUsers(cache)! } } : {}),
     ...(rateLimit ? { rateLimit: { provider: rateLimit.technology.includes('Cloudflare') ? 'cloudflare' : 'upstash', users: resourceUsers(rateLimit)! } } : {}),
     ...(queue ? { queue: { provider: queue.technology.includes('Cloudflare') ? 'cloudflare' : 'upstash', users: resourceUsers(queue)! } } : {}),

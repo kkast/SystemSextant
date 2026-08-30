@@ -112,7 +112,7 @@ function questionsFor(state: WizardState): Question[] {
     return { ...current, databaseChoice, draft: { ...current.draft, database: { type: databaseChoice!, ...defaults, users: resourceUsers(current.draft) } } };
   } });
   if (state.databaseChoice && state.databaseChoice !== 'none' && state.draft.database) {
-    const providers = state.databaseChoice === 'postgresql' ? [{ value: 'supabase', label: 'Supabase PostgreSQL' }, { value: 'neon', label: 'Neon PostgreSQL' }] : state.databaseChoice === 'mongodb' ? [{ value: 'mongodb-atlas', label: 'MongoDB Atlas' }] : [{ value: 'cloudflare', label: 'Cloudflare D1' }];
+    const providers = state.databaseChoice === 'postgresql' ? [{ value: 'supabase', label: 'Supabase PostgreSQL' }, { value: 'neon', label: 'Neon PostgreSQL' }, { value: 'local-docker', label: 'Local PostgreSQL in Docker' }] : state.databaseChoice === 'mongodb' ? [{ value: 'mongodb-atlas', label: 'MongoDB Atlas' }] : [{ value: 'cloudflare', label: 'Cloudflare D1' }];
     const access = state.databaseChoice === 'postgresql' ? [{ value: 'drizzle', label: 'Drizzle ORM' }, { value: 'prisma', label: 'Prisma ORM' }] : state.databaseChoice === 'mongodb' ? [{ value: 'native-driver', label: 'MongoDB driver' }, { value: 'prisma', label: 'Prisma ORM' }] : [{ value: 'drizzle', label: 'Drizzle ORM' }, { value: 'native-driver', label: 'D1 binding API' }];
     questions.push(
       { id: 'database-provider', kind: 'single', label: 'Database provider', options: providers, value: state.draft.database.provider, apply: (current, value) => ({ ...current, draft: { ...current.draft, database: { ...current.draft.database!, provider: String(value) as NonNullable<ArchitectureDraft['database']>['provider'] } } }) },

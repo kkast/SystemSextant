@@ -13,6 +13,7 @@ import {
 const databaseNames = {
   supabase: 'Supabase PostgreSQL',
   neon: 'Neon PostgreSQL',
+  'local-docker': 'Local PostgreSQL in Docker',
   'mongodb-atlas': 'MongoDB Atlas',
   cloudflare: 'Cloudflare D1',
 } as const;
