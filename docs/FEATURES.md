@@ -95,6 +95,7 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] Generate, view, copy, and download `project.yaml` and `AGENT_PROMPT.md` without a backend.
 - [x] Import a validated V2 `project.yaml` as an editable browser draft.
 - [x] Configure the production SPA for Cloudflare Workers Static Assets.
+- [x] Link the browser home navigation to the project GitHub repository.
 
 ## Later: delivery
 

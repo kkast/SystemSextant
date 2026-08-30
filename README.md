@@ -16,13 +16,15 @@ node packages/cli/dist/bin/systemsextant.js
 
 For convenience, use `pnpm dev` to build and launch the CLI in one command.
 
-To launch the browser application locally:
+## Browser app
+
+Launch the existing browser-local workspace with:
 
 ```bash
 pnpm dev:web
 ```
 
-The browser workspace autosaves drafts in IndexedDB. Generating saves the completed session automatically — one session per unique configuration — and saving a reusable template asks for a template-specific name and rejects duplicate configurations. `AGENT_PROMPT.md` is derived from the saved YAML only when requested. The browser can import a V2 `project.yaml`, and it can view, copy, and download both generated artifacts. Its production build is configured for Cloudflare Workers Static Assets.
+It provides a visual architecture builder over the same deterministic core as the CLI. Drafts, completed sessions, and reusable templates are saved in IndexedDB. The browser can import V2 `project.yaml` files and view, copy, and download both generated artifacts without a backend, account, model call, or telemetry. Its production build is configured for Cloudflare Workers Static Assets.
 
 The bare interface lets you start a new session, reopen a saved one, or use a template. A new session asks one question at a time about multiple named UIs and services, their descriptions, deployments, data, authentication, and infrastructure. Press `G` from review to generate both artifacts.
 
