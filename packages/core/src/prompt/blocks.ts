@@ -543,6 +543,31 @@ ${transportRequirements}
 - Test scheduled handlers locally with the Workers runtime test APIs, including missed schedules, overlapping runs, handler errors, and cold-start latency expectations.`,
   },
   {
+    // Selected only when authentication.service is 'api-token' in confirmed decisions. Kept separate
+    // from capability.authentication so prompts for other services stay byte-identical (LEGO rule).
+    // User-supplied authDetails are untrusted and stay inside an escaped JSON data block.
+    id: 'tool.api-token',
+    order: 1275,
+    applies: (config) =>
+      config.decisions.some(
+        (decision) =>
+          decision.key === 'authentication.service' && decision.value === 'api-token',
+      ),
+    render: (config) => {
+      const details = config.decisions.find(
+        (decision) => decision.key === 'authentication.details',
+      )?.value;
+      return `### Tool: Fixed API token authentication
+
+- Verify one fixed API token server-side on every request behind the application-owned authentication boundary. There is no login flow and no user account model; reject any request without the expected token.
+- Read the token from a validated server-only environment variable. Store only a hash of the token if persistence is needed, and compare presented tokens in constant time to avoid timing leaks.
+- Attach the token as a bearer credential on every request and send it only over HTTPS; never place it in URLs, logs, error messages, or client-visible code. Prefer committing the token only to server-side callers and keeping it out of browser code when the architecture allows.
+- Deny by default: protect every operation, return an unauthenticated error without revealing whether the token is missing, malformed, or revoked, and add negative-path tests for missing, malformed, tampered, and revoked tokens.
+- Define rotation and revocation steps for the fixed token, document them next to the environment configuration, and treat a leaked token as an immediate rotation event.
+${details ? `\n${untrustedDataNotice}\n\n${dataBlock('auth-details-data', details)}` : ''}`;
+    },
+  },
+  {
     id: 'agent-mode.plan-only',
     order: 1300,
     applies: hasAgentMode('plan-only'),

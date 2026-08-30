@@ -23,7 +23,7 @@ const dataAccessNames = {
   drizzle: 'Drizzle ORM',
   'native-driver': 'native driver / binding API',
 } as const;
-const authNames = { 'supabase-auth': 'Supabase Auth', authjs: 'Auth.js', privy: 'Privy' } as const;
+const authNames = { 'api-token': 'Fixed API token', 'supabase-auth': 'Supabase Auth', authjs: 'Auth.js', privy: 'Privy' } as const;
 const storageNames = {
   'supabase-storage': 'Supabase Storage',
   'cloudflare-r2': 'Cloudflare R2',
@@ -367,13 +367,21 @@ export function normalizeProjectConfig(input: QuestionnaireAnswers): ProjectConf
       status: 'confirmed' as const,
     })),
   );
-  if (answers.authService !== 'none')
+  if (answers.authService !== 'none') {
+    if (answers.authDetails)
+      decisions.push({
+        key: 'authentication.details',
+        value: answers.authDetails,
+        source: 'user',
+        status: 'confirmed',
+      });
     decisions.push({
       key: 'authentication.technology',
       value: authNames[answers.authService],
       source: 'default',
       status: 'confirmed',
     });
+  }
   decisions.push({
     key: 'agent.question-policy',
     value: 'blocking-only',

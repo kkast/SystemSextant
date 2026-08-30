@@ -1042,12 +1042,13 @@ export function Builder({
                   }
                 >
                   <option value="none">No authentication</option>
+                  <option value="api-token">Fixed API token</option>
                   <option value="supabase-auth">Supabase Auth</option>
                   <option value="authjs">Auth.js</option>
                   <option value="privy">Privy</option>
                 </select>
               </label>
-              {draft.authService !== 'none' && (
+              {draft.authService !== 'none' && draft.authService !== 'api-token' && (
                 <CheckboxGroup
                   label="Login methods"
                   options={[
@@ -1068,6 +1069,20 @@ export function Builder({
                     })
                   }
                 />
+              )}
+              {draft.authService !== 'none' && (
+                <label className="field">
+                  <span className="field__label">Authentication details (optional)</span>
+                  <textarea
+                    value={draft.authDetails ?? ''}
+                    maxLength={2000}
+                    rows={3}
+                    placeholder="Token storage, rotation, or other authentication requirements"
+                    onChange={(event) =>
+                      onChange({ ...draft, authDetails: event.target.value || undefined })
+                    }
+                  />
+                </label>
               )}
             </article>
             <h2>Coding agent mode</h2>

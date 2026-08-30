@@ -59,7 +59,9 @@ export const ArchitectureDraftSchema = z.object({
     .object({ provider: z.enum(['supabase-storage', 'cloudflare-r2']), users: ResourceUsersSchema })
     .optional(),
   realtimeModes: z.array(z.enum(['sse', 'websocket'])).default([]),
-  authService: z.enum(['none', 'supabase-auth', 'authjs', 'privy']).default('none'),
+  authService: z.enum(['none', 'api-token', 'supabase-auth', 'authjs', 'privy']).default('none'),
+  /** Optional free-form authentication requirements, e.g. API-token details. */
+  authDetails: z.string().trim().max(2_000).optional(),
   loginMethods: z.array(z.enum(['github', 'email-password', 'magic-link', 'wallet'])).default([]),
   agentMode: AgentModeSchema,
 });
@@ -123,9 +125,12 @@ function validateDraft(draft: ArchitectureDraft): ArchitectureDraft {
     throw new Error('WebSockets require an Express service in the current product.');
   const authService = parsed.authService;
   if (authService !== 'none') {
-    if (parsed.loginMethods.length === 0) throw new Error('Choose at least one login method.');
+    // A fixed API token has no user-facing login flow, so login methods stay empty by design.
+    if (authService !== 'api-token' && parsed.loginMethods.length === 0)
+      throw new Error('Choose at least one login method.');
     const compatibleMethods = {
       'supabase-auth': ['github', 'email-password', 'magic-link'],
+      'api-token': [],
       authjs: ['github', 'magic-link'],
       privy: ['github', 'magic-link', 'wallet'],
     } as const;
@@ -221,6 +226,7 @@ export function normalizeArchitectureDraft(input: ArchitectureDraft): ProjectCon
       { key: 'realtime.modes', value: draft.realtimeModes, source: 'user', status: 'confirmed' },
       { key: 'authentication.service', value: draft.authService, source: 'user', status: 'confirmed' },
       { key: 'authentication.login-methods', value: draft.loginMethods, source: 'user', status: 'confirmed' },
+      ...(draft.authDetails ? [{ key: 'authentication.details', value: draft.authDetails, source: 'user' as const, status: 'confirmed' as const }] : []),
       { key: 'agent.mode', value: draft.agentMode, source: 'user', status: 'confirmed' },
       ...(draft.scheduledJobs ? [{ key: 'scheduled-jobs.provider', value: 'cloudflare', source: 'user' as const, status: 'confirmed' as const }] : []),
     ],
@@ -261,6 +267,7 @@ export function architectureDraftFromConfig(config: ProjectConfigV2): Architectu
     scheduledJobs: config.tools.includes('cloudflare-cron'),
     authService: config.decisions.find((decision) => decision.key === 'authentication.service')?.value ?? 'none',
     loginMethods: (config.decisions.find((decision) => decision.key === 'authentication.login-methods')?.value ?? []) as string[],
+    authDetails: config.decisions.find((decision) => decision.key === 'authentication.details')?.value as string | undefined,
     agentMode: config.agentPreferences.mode,
   });
 }

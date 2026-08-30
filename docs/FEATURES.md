@@ -26,7 +26,7 @@ This is the single tracker for implemented and potential SystemSextant features.
 - [x] When Cloudflare Workers is the backend, let each selected infrastructure need use either its Cloudflare-native service or Upstash.
 - [x] Add Cloudflare Cache/KV, Workers Rate Limiting, and Cloudflare Queues as independent tool mappings and prompt blocks.
 - [x] When Cloudflare Workers is the backend, offer periodic scheduled execution via Cloudflare Workers Cron Triggers as an infrastructure need with its own capability and tool prompt block, and list Cloudflare-native options first when the backend is Cloudflare Workers.
-- [x] Select an authentication service, then offer only its compatible login methods.
+- [x] Select an authentication service, then offer only its compatible login methods. Services: none, fixed API token (no login flow), Supabase Auth, Auth.js, or Privy.
 - [x] Review and edit answers before generating artifacts.
 - [x] Review generated artifacts after automatic session persistence.
 - [x] Copy the complete prompt or YAML directly from generated-artifact preview.

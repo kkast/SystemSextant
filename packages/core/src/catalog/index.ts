@@ -164,6 +164,7 @@ Everything below is selectable in the current questionnaire unless marked as a c
 - No file storage
 
 ## Authentication
+- Fixed API token: one token attached to every request, verified on the server without a login flow.
 - Supabase Auth: GitHub, email/password, or magic link.
 - Auth.js: GitHub or magic link.
 - Privy: GitHub, email, or crypto wallet.

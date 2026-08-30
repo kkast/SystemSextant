@@ -49,7 +49,7 @@ architecture draft
 - Data questions select a database and provider before offering only compatible ORM or direct data-access choices. PostgreSQL providers are Supabase, Neon, or a self-hosted container declared in a local Docker file; MongoDB and Cloudflare D1 have their own providers.
 - File storage is selected independently as none, Supabase Storage, or Cloudflare R2.
 - Infrastructure toggles represent application caching, distributed rate limiting, and reliable background delivery or queues. Upstash is available for every backend. When Cloudflare Workers is selected, each infrastructure need can instead use its Cloudflare-native service.
-- Authentication selects a service before offering only login methods compatible with that service.
+- Authentication selects a service before offering only login methods compatible with that service. A fixed API token attaches one token to every request and has no login flow; selecting any service can add optional free-form authentication details that are injected into the prompt only as untrusted escaped JSON data.
 - Normalization expands shortcuts into explicit components, resources, connections, contracts, and confirmed decisions.
 - Zod validates data at each boundary and rejects invalid graph references or duplicate stable IDs.
 - Artifact generation uses stable ordering, excludes timestamps from project artifacts, and hashes the exact stored content.

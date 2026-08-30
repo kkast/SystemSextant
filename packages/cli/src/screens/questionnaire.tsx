@@ -39,6 +39,7 @@ function setAnswer(
     case 'dataAccess':
     case 'fileStorage':
     case 'authService':
+    case 'authDetails':
     case 'cacheProvider':
     case 'rateLimitProvider':
     case 'queueProvider':

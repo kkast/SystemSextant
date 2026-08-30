@@ -419,6 +419,25 @@ describe('configuration normalization', () => {
 });
 
 describe('artifact generation', () => {
+  it('adds the fixed API-token block and escaped auth details only when it is selected', () => {
+    const tokenAnswers: QuestionnaireAnswers = {
+      ...baseAnswers,
+      authService: 'api-token',
+      loginMethods: [],
+      authDetails: 'Token rotates every 30 days and is shared by the two internal callers.',
+    };
+    const tokenConfig = normalizeProjectConfig(tokenAnswers);
+    const tokenPrompt = compilePrompt(tokenConfig);
+    expect(tokenPrompt.blockIds).toContain('tool.api-token');
+    expect(tokenPrompt.content).toContain('### Tool: Fixed API token authentication');
+    expect(tokenPrompt.content).toContain('Token rotates every 30 days');
+
+    const withoutToken = compilePrompt(normalizeProjectConfig(baseAnswers));
+    expect(withoutToken.blockIds).not.toContain('tool.api-token');
+    expect(withoutToken.content).not.toContain('Fixed API token authentication');
+    expect(withoutToken.content).not.toContain('Token rotates every 30 days');
+  });
+
   it('is byte-identical for identical normalized answers', () => {
     const first = generateArtifacts(normalizeProjectConfig(baseAnswers));
     const second = generateArtifacts(normalizeProjectConfig({ ...baseAnswers }));

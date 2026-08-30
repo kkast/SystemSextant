@@ -41,7 +41,9 @@ export const QuestionnaireAnswersSchema = z
     cacheProvider: z.enum(['upstash', 'cloudflare']).optional(),
     rateLimitProvider: z.enum(['upstash', 'cloudflare']).optional(),
     queueProvider: z.enum(['upstash', 'cloudflare']).optional(),
-    authService: z.enum(['none', 'supabase-auth', 'authjs', 'privy']),
+    authService: z.enum(['none', 'api-token', 'supabase-auth', 'authjs', 'privy']),
+    /** Optional free-form authentication requirements, e.g. API-token details. */
+    authDetails: z.string().trim().max(2_000).optional(),
     loginMethods: z
       .array(LoginMethodSchema)
       .refine((items) => new Set(items).size === items.length)
@@ -190,7 +192,19 @@ export const QuestionnaireAnswersSchema = z
         });
       }
     }
-    if (answers.authService !== 'none' && answers.loginMethods.length === 0) {
+    if (answers.authService === 'none' && answers.authDetails) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Authentication details require an authentication service.',
+        path: ['authDetails'],
+      });
+    }
+    // A fixed API token has no user-facing login flow, so login methods stay empty by design.
+    if (
+      answers.authService !== 'none' &&
+      answers.authService !== 'api-token' &&
+      answers.loginMethods.length === 0
+    ) {
       context.addIssue({
         code: 'custom',
         message: 'Choose at least one login method.',
@@ -199,6 +213,7 @@ export const QuestionnaireAnswersSchema = z
     }
     const authMethods = {
       'supabase-auth': ['github', 'email-password', 'magic-link'],
+      'api-token': [],
       authjs: ['github', 'magic-link'],
       privy: ['github', 'magic-link', 'wallet'],
     } as const;
@@ -233,6 +248,7 @@ export type QuestionId =
   | 'rateLimitProvider'
   | 'queueProvider'
   | 'authService'
+  | 'authDetails'
   | 'loginMethods'
   | 'agentMode';
 
@@ -671,6 +687,12 @@ const authQuestion: SingleSelectQuestion = {
   options: [
     { value: 'none', label: 'No authentication' },
     {
+      value: 'api-token',
+      label: 'Fixed API token',
+      description:
+        'One fixed token attached to every request; verified on the server without a login flow.',
+    },
+    {
       value: 'supabase-auth',
       label: 'Supabase Auth',
       description:
@@ -753,8 +775,16 @@ export function getQuestionSequence(answers: DraftQuestionnaireAnswers): Questio
     }
   }
   questions.push(authQuestion);
-  if (answers.authService && answers.authService !== 'none')
-    questions.push(loginMethodsQuestion(answers.authService));
+  if (answers.authService && answers.authService !== 'none') {
+    if (answers.authService !== 'api-token')
+      questions.push(loginMethodsQuestion(answers.authService));
+    questions.push({
+      id: 'authDetails',
+      kind: 'text',
+      label: 'Authentication details (optional)',
+      placeholder: 'Token storage, rotation, or other authentication requirements',
+    });
+  }
   questions.push(agentModeQuestion);
   return questions;
 }
